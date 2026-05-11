@@ -1,6 +1,7 @@
+use crate::errors::WSLError;
 use super::types::{Distro, DistroState};
 
-pub fn parse_distros(decoded: &str) -> anyhow::Result<Vec<Distro>> {
+pub fn parse_distros(decoded: &str) -> Result<Vec<Distro>, WSLError> {
     let mut distros = vec![];
 
     for line in decoded.lines().skip(1) {
