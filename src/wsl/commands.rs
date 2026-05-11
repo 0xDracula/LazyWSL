@@ -41,3 +41,12 @@ pub fn shutdown(name: &str) -> anyhow::Result<()> {
     println!("Stopped: {}", name);
     Ok(())
 }
+
+pub fn set_default(name: &str) -> anyhow::Result<()> {
+    Command::new("wsl.exe")
+        .args(["--set-default", name])
+        .output()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+    
+    Ok(())
+}
