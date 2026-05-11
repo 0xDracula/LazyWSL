@@ -54,6 +54,9 @@ pub fn get_distros() -> anyhow::Result<Vec<Distro>> {
         .args(["--list", "--verbose"])
         .output()?;
 
+    if output.stdout.is_empty() {
+        return Err(anyhow::anyhow!("No distros found!"));
+    }
     // Convert UTF-16 to UTF-8 due to wsl output format
     let utf16: Vec<u16> = output.stdout
         .chunks_exact(2)
