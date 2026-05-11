@@ -20,4 +20,6 @@ fn main() {
     // for d in &wsl::get_distros().unwrap() {
     //     println!("{} - {} - {} - {}", d.name, d.is_default, d.version, d.state);
     // }
+
+    // wsl::open_shell("docker-desktop").unwrap();
 }

@@ -83,10 +83,10 @@ pub fn open_shell(name: &str) -> anyhow::Result<()> {
     if !distro_exists(name) {
         return Err(anyhow::anyhow!("Distro {} not found", name));
     }
-    Command::new("wsl.exe")
-        .args(["-d", name])
-        .output()
-        .map_err(|e| anyhow::anyhow!("{}", e))?;
+    Command::new("wt.exe")
+        .args(["wsl.exe", "-d", name])
+        .spawn()
+        .map_err(|e| anyhow::anyhow!("Cannot spawn terminal!! -> {}", e))?;
 
     Ok(())
 }
