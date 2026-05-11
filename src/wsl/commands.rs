@@ -1,7 +1,6 @@
 use std::process::Command;
 use super::types::{ Distro };
 use super::parser::{ parse_distros };
-use crate::errors;
 use crate::errors::*;
 // helpers
 
