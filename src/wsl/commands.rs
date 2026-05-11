@@ -1,6 +1,14 @@
 use std::process::Command;
 use super::types::{ Distro };
 use super::parser::{ parse_distros };
+
+pub fn distro_exists(name: &str) -> bool {
+    match get_distros() {
+        Ok(distros) => distros.iter().any(|d| d.name == name),
+        Err(e) => false
+    }
+}
+
 pub fn get_distros() -> anyhow::Result<Vec<Distro>> {
     let output = Command::new("wsl.exe")
         .args(["--list", "--verbose"])
@@ -18,4 +26,18 @@ pub fn get_distros() -> anyhow::Result<Vec<Distro>> {
 
     let decoded = String::from_utf16_lossy(&utf16);
     parse_distros(&decoded)
+}
+
+pub fn shutdown(name: &str) -> anyhow::Result<()> {
+    if !distro_exists(name) {
+        return Err(anyhow::anyhow!("Not found!"));
+    }
+
+    Command::new("wsl.exe")
+        .args(["--terminate", name])
+        .output()
+        .map_err(|e| anyhow::anyhow!(e))?;
+
+    println!("Stopped: {}", name);
+    Ok(())
 }
