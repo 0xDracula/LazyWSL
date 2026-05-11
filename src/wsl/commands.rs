@@ -2,12 +2,17 @@ use std::process::Command;
 use super::types::{ Distro };
 use super::parser::{ parse_distros };
 
+
+// helpers
+
 pub fn distro_exists(name: &str) -> bool {
     match get_distros() {
         Ok(distros) => distros.iter().any(|d| d.name == name),
-        Err(e) => false
+        Err(_) => false
     }
 }
+
+// reads
 
 pub fn get_distros() -> anyhow::Result<Vec<Distro>> {
     let output = Command::new("wsl.exe")
@@ -28,7 +33,10 @@ pub fn get_distros() -> anyhow::Result<Vec<Distro>> {
     parse_distros(&decoded)
 }
 
-pub fn shutdown(name: &str) -> anyhow::Result<()> {
+
+//actions
+
+pub fn terminate(name: &str) -> anyhow::Result<()> {
     if !distro_exists(name) {
         return Err(anyhow::anyhow!("Not found!"));
     }
@@ -38,7 +46,19 @@ pub fn shutdown(name: &str) -> anyhow::Result<()> {
         .output()
         .map_err(|e| anyhow::anyhow!(e))?;
 
-    println!("Stopped: {}", name);
+    Ok(())
+}
+
+pub fn unregister(name: &str) -> anyhow::Result<()> {
+    if !distro_exists(name) {
+        return Err(anyhow::anyhow!("Distro {} not found!", name));
+    }
+
+    Command::new("wsl.exe")
+        .args(["--unregister", name])
+        .output()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+
     Ok(())
 }
 
@@ -47,6 +67,27 @@ pub fn set_default(name: &str) -> anyhow::Result<()> {
         .args(["--set-default", name])
         .output()
         .map_err(|e| anyhow::anyhow!("{}", e))?;
-    
+
     Ok(())
 }
+
+pub fn shutdown() -> anyhow::Result<()> {
+    Command::new("wsl.exe")
+        .args(["--shutdown"])
+        .output()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+    Ok(())
+}
+
+pub fn open_shell(name: &str) -> anyhow::Result<()> {
+    if !distro_exists(name) {
+        return Err(anyhow::anyhow!("Distro {} not found", name));
+    }
+    Command::new("wsl.exe")
+        .args(["-d", name])
+        .output()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+
+    Ok(())
+}
+
