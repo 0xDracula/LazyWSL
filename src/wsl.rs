@@ -52,7 +52,8 @@ fn parse_distros(decoded: &str) -> anyhow::Result<Vec<Distro>> {
 pub fn get_distros() -> anyhow::Result<Vec<Distro>> {
     let output = Command::new("wsl.exe")
         .args(["--list", "--verbose"])
-        .output()?;
+        .output()
+        .map_err(|_| anyhow::anyhow!("WSL is not installed!"))?;
 
     if output.stdout.is_empty() {
         return Err(anyhow::anyhow!("No distros found!"));
