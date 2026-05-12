@@ -1,6 +1,6 @@
 mod types;
-mod commands;
+mod client;
 mod parser;
 
-pub use commands::*;
+pub use client::*;
 pub use types::*;
