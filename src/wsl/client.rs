@@ -103,5 +103,13 @@ impl WslProcess {
         Ok(())
     }
 
+    pub async fn run_distro(&self, name: &str) -> Result<(), WSLError> {
+        let distros = self.get_distros().await?;
+        distro_exists(name, &distros)?;
+        self.run_wsl(&["--distribution", name]).await?;
+
+        Ok(())
+    }
+
 }
 

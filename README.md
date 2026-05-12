@@ -1,7 +1,7 @@
 # <p align="center">LazyWSL 🐧</p>
 ![image](https://user-cdn.hackclub-assets.com/019e17c6-ece6-776f-bc2e-0777c7e81b9d/98b131cc-04bf-4da6-9378-9ce7b160c185.jpg)
 A lazy way to manage your WSL distros, right from your terminal.
-Built with Rust, Ratatui, inspired by LazyGit, and LazyDocker.
+Built with Rust, Ratatui, inspired by wsl-ui, LazyGit, and LazyDocker.
 
 ## Features ✨ (under development)
 

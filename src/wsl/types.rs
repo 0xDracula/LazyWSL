@@ -1,6 +1,7 @@
 use std::fmt;
 use std::fmt::Formatter;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Distribution {
     pub id: Option<String>,
     pub name: String,
@@ -9,7 +10,7 @@ pub struct Distribution {
     pub is_default: bool,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DistroState {
     Running,
     Stopped,
@@ -17,7 +18,7 @@ pub enum DistroState {
     Unknown(String),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WslVersion {
     V1,
     V2,

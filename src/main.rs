@@ -5,4 +5,6 @@ mod app;
 mod ui;
 mod errors;
 
-fn main() {}
+fn main() {
+    
+}
