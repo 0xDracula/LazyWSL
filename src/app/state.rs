@@ -2,7 +2,7 @@ use crate::wsl::Distribution;
 
 #[derive(Debug, Clone)]
 pub struct AppState {
-    pub distros: Vec<Distribution>,
+    pub distributions: Vec<Distribution>,
     pub selected: usize,
     pub status_line: String,
     pub busy: bool,
@@ -19,7 +19,7 @@ pub enum Pending {
 impl Default for AppState {
     fn default() -> Self {
         Self {
-            distros: Vec::new(),
+            distributions: Vec::new(),
             selected: 0,
             status_line: String::new(),
             busy: false,
@@ -30,13 +30,13 @@ impl Default for AppState {
 
 impl AppState {
     pub fn clamp_selection(&mut self) {
-        if self.distros.is_empty() {
+        if self.distributions.is_empty() {
             self.selected = 0;
         } else {
-            self.selected = self.selected.min(self.distros.len() - 1);
+            self.selected = self.selected.min(self.distributions.len() - 1);
         }
     }
     pub fn selected_distro(&self) -> Option<&Distribution> {
-        self.distros.get(self.selected)
+        self.distributions.get(self.selected)
     }
 }

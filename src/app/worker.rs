@@ -22,7 +22,7 @@ pub enum WorkerEvent {
         status_line: String,
     },
     ListOnly {
-        distros: Result<Vec<Distribution>, WSLError>,
+        distributions: Result<Vec<Distribution>, WSLError>,
     },
 }
 
@@ -59,7 +59,7 @@ async fn run_wsl_worker(
             }
             _ = tick.tick() => {
                 let list = wsl.get_distros().await;
-                if evt_tx.send(WorkerEvent::ListOnly { distros: list }).await.is_err() {
+                if evt_tx.send(WorkerEvent::ListOnly { distributions: list }).await.is_err() {
                     break;
                 }
             }
