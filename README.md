@@ -14,6 +14,6 @@ Built with Rust, Ratatui, inspired by wsl-ui, LazyGit, and LazyDocker.
 - **Import/Export** distros as `.tar` files
 - **Help menu** with all keybindings
 
-### TUI
+## Overview 🐧
 
-Not yet!
+![image](https://cdn.hackclub.com/019e1d48-ea01-7521-a16b-b822b663708b/Screenshot%202026-05-12%20204249.png)
