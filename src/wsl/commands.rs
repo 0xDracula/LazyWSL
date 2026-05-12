@@ -1,27 +1,42 @@
-use std::process::Command;
-use super::types::{ Distro };
-use super::parser::{ parse_distros };
+use std::process::{Command, Output};
+use super::types::{ Distribution };
+use super::parser::{ parse_wsl_output };
 use crate::errors::*;
 // helpers
 
-pub fn distro_exists(name: &str) -> bool {
-    match get_distros() {
-        Ok(distros) => distros.iter().any(|d| d.name == name),
-        Err(_) => false
+pub fn run_wsl(args: &[&str]) -> Result<Output, WSLError> {
+    let output = Command::new("wsl.exe")
+        .args(args)
+        .output()
+        .map_err(|_| WSLError::NotInstalled)?;
+
+    if !output.status.success() {
+        return Err(WSLError::CommandFailed(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            format!("wsl.exe exited with {}", output.status),
+        )));
+    }
+
+    Ok(output)
+}
+
+pub fn distro_exists(name: &str, distros: &[Distribution]) -> Result<(), WSLError> {
+    if distros.iter().any(|d| d.name == name) {
+        Ok(())
+    } else {
+        Err(WSLError::DistroNotFound(name.to_string()))
     }
 }
 
 // reads
 
-pub fn get_distros() -> Result<Vec<Distro>, WSLError> {
-    let output = Command::new("wsl.exe")
-        .args(["--list", "--verbose"])
-        .output()
-        .map_err(|_| WSLError::NotInstalled)?;
+pub fn get_distros() -> Result<Vec<Distribution>, WSLError> {
+    let output = run_wsl(&["--list", "--verbose"])?;
 
     if output.stdout.is_empty() {
         return Err(WSLError::NoDistros);
     }
+
     // Convert UTF-16 to UTF-8 due to wsl output format
     let utf16: Vec<u16> = output.stdout
         .chunks_exact(2)
@@ -29,57 +44,46 @@ pub fn get_distros() -> Result<Vec<Distro>, WSLError> {
         .collect();
 
     let decoded = String::from_utf16_lossy(&utf16);
-    parse_distros(&decoded)
+    Ok(parse_wsl_output(&decoded))
 }
 
 
 //actions
 
 pub fn terminate(name: &str) -> Result<(), WSLError> {
-    if !distro_exists(name) {
-        return Err(WSLError::DistroNotFound(name.to_string()));
-    }
-
-    Command::new("wsl.exe")
-        .args(["--terminate", name])
-        .output()?;
+    let distros = get_distros()?;
+    distro_exists(name, &distros)?;
+    run_wsl(&["--terminate", name])?;
     Ok(())
 }
 
 pub fn unregister(name: &str) -> Result<(), WSLError> {
-    if !distro_exists(name) {
-        return Err(WSLError::DistroNotFound(name.to_string()));
-    }
+    let distros = get_distros()?;
+    distro_exists(name, &distros)?;
 
-    Command::new("wsl.exe")
-        .args(["--unregister", name])
-        .output()?;
+    run_wsl(&["--unregister", name])?;
 
     Ok(())
 }
 
 pub fn set_default(name: &str) -> Result<(), WSLError> {
-    if !distro_exists(name) {
-        return Err(WSLError::DistroNotFound(name.to_string()));
-    }
-    Command::new("wsl.exe")
-        .args(["--set-default", name])
-        .output()?;
+    let distros = get_distros()?;
+    distro_exists(name, &distros)?;
+
+    run_wsl(&["--set-default", name])?;
 
     Ok(())
 }
 
 pub fn shutdown() -> Result<(), WSLError> {
-    Command::new("wsl.exe")
-        .args(["--shutdown"])
-        .output()?;
+    run_wsl(&["--shutdown"])?;
     Ok(())
 }
 
 pub fn open_shell(name: &str) -> Result<(), WSLError> {
-    if !distro_exists(name) {
-        return Err(WSLError::DistroNotFound(name.to_string()));
-    }
+    let distros = get_distros()?;
+    distro_exists(name, &distros)?;
+    
     Command::new("wt.exe")
         .args(["wsl.exe", "-d", name])
         .spawn()?;
