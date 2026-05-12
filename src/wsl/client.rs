@@ -1,7 +1,9 @@
-use std::process::{Command, Output};
+use std::process::Output;
+use tokio::process::Command;
 use super::types::{ Distribution };
 use super::parser::{ parse_wsl_output };
 use crate::errors::*;
+
 pub fn distro_exists(name: &str, distros: &[Distribution]) -> Result<(), WSLError> {
     if distros.iter().any(|d| d.name == name) {
         Ok(())
@@ -19,10 +21,11 @@ impl WslProcess {
     pub fn new() -> Self {
         Self
     }
-    pub fn run_wsl(&self, args: &[&str]) -> Result<Output, WSLError> {
+    async fn run_wsl(&self, args: &[&str]) -> Result<Output, WSLError> {
         let output = Command::new("wsl.exe")
             .args(args)
             .output()
+            .await
             .map_err(|_| WSLError::NotInstalled)?;
 
         if !output.status.success() {
@@ -37,8 +40,9 @@ impl WslProcess {
 
     // reads
 
-    pub fn get_distros(&self) -> Result<Vec<Distribution>, WSLError> {
-        let output = self.run_wsl(&["--list", "--verbose"])?;
+    pub async fn get_distros(&self) -> Result<Vec<Distribution>, WSLError> {
+        let output = self.run_wsl(&["--list", "--verbose"])
+            .await?;
 
         if output.stdout.is_empty() {
             return Err(WSLError::NoDistros);
@@ -57,38 +61,39 @@ impl WslProcess {
 
     //actions
 
-    pub fn terminate(&self, name: &str) -> Result<(), WSLError> {
-        let distros = self.get_distros()?;
-        distro_exists(name, &distros)?;
-        self.run_wsl(&["--terminate", name])?;
-        Ok(())
-    }
-
-    pub fn unregister(&self, name: &str) -> Result<(), WSLError> {
-        let distros = self.get_distros()?;
+    pub async fn terminate(&self, name: &str) -> Result<(), WSLError> {
+        let distros = self.get_distros().await?;
         distro_exists(name, &distros)?;
 
-        self.run_wsl(&["--unregister", name])?;
-
+        self.run_wsl(&["--terminate", name]).await?;
         Ok(())
     }
 
-    pub fn set_default(&self, name: &str) -> Result<(), WSLError> {
-        let distros = self.get_distros()?;
+    pub async fn unregister(&self, name: &str) -> Result<(), WSLError> {
+        let distros = self.get_distros().await?;
         distro_exists(name, &distros)?;
 
-        self.run_wsl(&["--set-default", name])?;
+        self.run_wsl(&["--unregister", name]).await?;
 
         Ok(())
     }
 
-    pub fn shutdown(&self) -> Result<(), WSLError> {
-        self.run_wsl(&["--shutdown"])?;
+    pub async fn set_default(&self, name: &str) -> Result<(), WSLError> {
+        let distros = self.get_distros().await?;
+        distro_exists(name, &distros)?;
+
+        self.run_wsl(&["--set-default", name]).await?;
+
         Ok(())
     }
 
-    pub fn open_shell(&self, name: &str) -> Result<(), WSLError> {
-        let distros = self.get_distros()?;
+    pub async fn shutdown(&self) -> Result<(), WSLError> {
+        self.run_wsl(&["--shutdown"]).await?;
+        Ok(())
+    }
+
+    pub async fn open_shell(&self, name: &str) -> Result<(), WSLError> {
+        let distros = self.get_distros().await?;
         distro_exists(name, &distros)?;
 
         Command::new("wt.exe")
