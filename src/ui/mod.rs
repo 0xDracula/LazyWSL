@@ -2,9 +2,11 @@ use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph};
+use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap};
 use thiserror::__private18::AsDisplay;
 use crate::app::{AppState, Pending };
+use wsl::DistroState;
+use crate::wsl;
 
 pub fn render(frame: &mut Frame<'_>, state: &AppState) {
     let area = frame.area();
@@ -65,17 +67,36 @@ pub fn render(frame: &mut Frame<'_>, state: &AppState) {
 
     frame.render_stateful_widget(list, main_chunks[0], &mut list_state);
 
+    let color = if let Some(d) = state.selected_distro() {
+        match &d.state {
+            DistroState::Running => Color::Green,
+            DistroState::Stopped => Color::Red,
+            DistroState::Installing => Color::Yellow,
+            DistroState::Unknown(_) => Color::Green,
+        }
+    } else {
+        Color::White
+    };
+
     let details_lines = if let Some(d) = state.selected_distro() {
         vec![
+            Line::from(""),
             Line::from(vec![
-                Span::styled("Name: ",
+                Span::styled("  Name: ",
                 Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw(&d.name)
             ]),
 
             Line::from(""),
 
             Line::from(vec![
-                Span::styled("Version: ",
+                Span::styled("  Status: ",
+                Style::default().fg(color).add_modifier(Modifier::BOLD)), Span::raw(d.state.to_string()),
+            ]),
+
+            Line::from(""),
+
+            Line::from(vec![
+                Span::styled("  Version: ",
                 Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw(
                     format!("V{}", d.version.clone().to_string())
                 )
@@ -84,7 +105,7 @@ pub fn render(frame: &mut Frame<'_>, state: &AppState) {
             Line::from(""),
 
             Line::from(vec![
-                Span::styled("Install Path: ",
+                Span::styled("  Install Path: ",
                 Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw(
                     d.install_path.clone().unwrap_or_else(|| { "Unknown".to_string() })
                 )
@@ -94,7 +115,7 @@ pub fn render(frame: &mut Frame<'_>, state: &AppState) {
          vec![Line::from("No distro selected!")]
     };
 
-    let details = Paragraph::new(details_lines).block(Block::default().borders(Borders::ALL).title(" Details "));
+    let details = Paragraph::new(details_lines).wrap( Wrap { trim: false } ).block(Block::default().borders(Borders::ALL).title(" Details "));
     frame.render_widget(details, main_chunks[1]);
     let mut status_txt = state.status_line.clone();
     match &state.pending {
