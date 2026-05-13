@@ -190,7 +190,7 @@ pub async fn run_tui() -> io::Result<()> {
     let _worker = spawn_wsl_worker(cmd_rx, evt_tx);
 
     enable_raw_mode()?;
-    let mut stdout = std::io::stdout();
+    let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout))?;
 

@@ -1,6 +1,5 @@
 use std::fmt;
 use std::fmt::Formatter;
-use std::path::PathBuf;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Distribution {
