@@ -18,6 +18,24 @@ fn centered_rect(x: u16, y: u16, area: Rect) -> Rect {
         Constraint::Percentage(x), Constraint::Percentage((100 - x) / 2)]).split(vertical[1])[1]
 }
 
+pub fn format_size(bytes: u64) -> String {
+    const KB: f64 = 1024.0;
+    const MB: f64 = 1024.0 * KB;
+    const GB: f64 = 1024.0 * MB;
+
+    let b = bytes as f64;
+
+    if b >= GB {
+        format!("{:.2} GB", b / GB)
+    } else if b >= MB {
+        format!("{:.2} MB", b / MB)
+    } else if b >= KB {
+        format!("{:.2} KB", b / KB)
+    } else {
+        format!("{bytes} B")
+    }
+}
+
 fn render_help(frame: &mut Frame<'_>) {
     let pop_up = centered_rect(60, 70, frame.area());
     let lines = vec![
@@ -29,11 +47,15 @@ fn render_help(frame: &mut Frame<'_>) {
             Span::raw(" Help "),
         ]),
 
+        Line::from(""),
+
         Line::from(vec![
             Span::styled(" q ", Style::default().fg(Color::Black).bg(Color::White)),
 
             Span::raw(" Quit "),
         ]),
+
+        Line::from(""),
 
         Line::from(vec![
             Span::styled(" r ", Style::default().fg(Color::Black).bg(Color::White)),
@@ -41,11 +63,15 @@ fn render_help(frame: &mut Frame<'_>) {
             Span::raw(" Run Distro "),
         ]),
 
+        Line::from(""),
+
         Line::from(vec![
             Span::styled(" t ", Style::default().fg(Color::Black).bg(Color::White)),
 
             Span::raw(" Terminate Distro ")
         ]),
+
+        Line::from(""),
 
         Line::from(vec![
             Span::styled(" Enter ", Style::default().fg(Color::Black).bg(Color::White)),
@@ -53,17 +79,23 @@ fn render_help(frame: &mut Frame<'_>) {
             Span::raw(" Enter Shell ")
         ]),
 
+        Line::from(""),
+
         Line::from(vec![
             Span::styled(" d ", Style::default().fg(Color::Black).bg(Color::White)),
 
             Span::raw(" Set Default Distro "),
         ]),
 
+        Line::from(""),
+
         Line::from(vec![
             Span::styled(" u ", Style::default().fg(Color::Black).bg(Color::White)),
 
             Span::raw(" Unregister a distro - Destructive Action "),
         ]),
+
+        Line::from(""),
 
         Line::from(vec![
             Span::styled(" s ", Style::default().fg(Color::Black).bg(Color::White)),
@@ -169,6 +201,15 @@ pub fn render(frame: &mut Frame<'_>, state: &AppState) {
                 Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw(
                     format!("V{}", d.version.clone().to_string())
                 )
+            ]),
+
+            Line::from(""),
+
+            Line::from(vec![
+                Span::styled("  Size: ",
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw(
+                        d.size_byes.map(format_size).unwrap_or_else(|| { "Unknown".to_string() })
+                    )
             ]),
 
             Line::from(""),

@@ -1,7 +1,7 @@
-use std::path::PathBuf;
+use std::fs;
+use std::path::Path;
 use winreg::enums::HKEY_CURRENT_USER;
 use winreg::RegKey;
-use crate::errors::WSLError;
 use crate::wsl::WslVersion;
 use super::types::{Distribution, DistroState};
 
@@ -24,6 +24,12 @@ pub fn parse_wsl_output(decoded: &str) -> Vec<Distribution> {
 
     for distro in &mut distros {
         distro.install_path = install_paths.iter().find(|(name, _)| name == &distro.name).map(|(_, path)| path.clone());
+    }
+
+    for distro in &mut distros {
+        if let Some(path) = distro.install_path.as_ref() {
+            distro.size_byes = get_distro_size(path);
+        }
     }
     distros
 }
@@ -55,6 +61,14 @@ pub fn get_distro_path() -> std::io::Result<Vec<(String, String)>> {
 
     }
     Ok(result)
+}
+
+pub fn get_distro_size(install_path: &String) -> Option<u64> {
+    let vhdx = Path::new(install_path).join("ext4.vhdx");
+
+    let metadata = fs::metadata(vhdx).ok()?;
+
+    Some(metadata.len())
 }
 
 pub fn parse_line_distro(line: &str) -> Option<Distribution> {
@@ -93,6 +107,7 @@ pub fn parse_line_distro(line: &str) -> Option<Distribution> {
         version,
         is_default,
         install_path: None,
+        size_byes: None,
     })
 }
 
