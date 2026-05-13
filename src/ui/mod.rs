@@ -122,8 +122,8 @@ pub fn render(frame: &mut Frame<'_>, state: &AppState) {
     let main_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Percentage(40),
-            Constraint::Percentage(60),
+            Constraint::Percentage(30),
+            Constraint::Percentage(70),
         ])
         .split(chunks[0]);
 
@@ -216,8 +216,15 @@ pub fn render(frame: &mut Frame<'_>, state: &AppState) {
 
             Line::from(vec![
                 Span::styled("  Install Path: ",
-                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw(
-                    d.install_path.clone().unwrap_or_else(|| { "Unknown".to_string() })
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+                )
+            ]),
+
+            Line::from(vec![
+                Span::raw("  "),
+                Span::styled(
+                    d.install_path.as_deref().unwrap_or("Unknown"),
+                    Style::default().fg(Color::Cyan),
                 )
             ])
         ]
