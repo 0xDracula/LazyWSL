@@ -1,12 +1,81 @@
 use ratatui::Frame;
-use ratatui::layout::{Constraint, Direction, Layout};
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap};
-use thiserror::__private18::AsDisplay;
+use ratatui::widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap};
 use crate::app::{AppState, Pending };
 use wsl::DistroState;
 use crate::wsl;
+
+fn centered_rect(x: u16, y: u16, area: Rect) -> Rect {
+    let vertical = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage((100 - y) / 2),
+            Constraint::Percentage(y), Constraint::Percentage((100 - y) / 2)]).split(area);
+
+    Layout::default().direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage((100 - x) / 2),
+        Constraint::Percentage(x), Constraint::Percentage((100 - x) / 2)]).split(vertical[1])[1]
+}
+
+fn render_help(frame: &mut Frame<'_>) {
+    let pop_up = centered_rect(60, 70, frame.area());
+    let lines = vec![
+        Line::from(""),
+
+        Line::from(vec![
+            Span::styled(" h ", Style::default().fg(Color::Black).bg(Color::White)),
+
+            Span::raw(" Help "),
+        ]),
+
+        Line::from(vec![
+            Span::styled(" q ", Style::default().fg(Color::Black).bg(Color::White)),
+
+            Span::raw(" Quit "),
+        ]),
+
+        Line::from(vec![
+            Span::styled(" r ", Style::default().fg(Color::Black).bg(Color::White)),
+
+            Span::raw(" Run Distro "),
+        ]),
+
+        Line::from(vec![
+            Span::styled(" t ", Style::default().fg(Color::Black).bg(Color::White)),
+
+            Span::raw(" Terminate Distro ")
+        ]),
+
+        Line::from(vec![
+            Span::styled(" Enter ", Style::default().fg(Color::Black).bg(Color::White)),
+
+            Span::raw(" Enter Shell ")
+        ]),
+
+        Line::from(vec![
+            Span::styled(" d ", Style::default().fg(Color::Black).bg(Color::White)),
+
+            Span::raw(" Set Default Distro "),
+        ]),
+
+        Line::from(vec![
+            Span::styled(" u ", Style::default().fg(Color::Black).bg(Color::White)),
+
+            Span::raw(" Unregister a distro - Destructive Action "),
+        ]),
+
+        Line::from(vec![
+            Span::styled(" s ", Style::default().fg(Color::Black).bg(Color::White)),
+
+            Span::raw(" Shutdown all distros "),
+        ]),
+    ];
+
+    let help = Paragraph::new(lines).block(Block::default().borders(Borders::ALL).title(" Help "));
+    frame.render_widget(Clear, pop_up);
+    frame.render_widget(help, pop_up);
+}
 
 pub fn render(frame: &mut Frame<'_>, state: &AppState) {
     let area = frame.area();
@@ -120,6 +189,7 @@ pub fn render(frame: &mut Frame<'_>, state: &AppState) {
     let mut status_txt = state.status_line.clone();
     match &state.pending {
         Pending::None => {}
+        Pending::Help => {}
         Pending::ConfirmUnregister { name } => {
             status_txt.push_str(&format!(
                 "\n[y/n] Unregister `{name}`? This removes the distro and its files "
@@ -139,7 +209,11 @@ pub fn render(frame: &mut Frame<'_>, state: &AppState) {
     frame.render_widget(status, chunks[1]);
 
     let help = Paragraph::new(
-        "r run distro | Enter shell | t terminate | d default | u unregister | s shutdown | q/Esc quit"
+        "h help | r run distro | Enter shell | t terminate | d default | u unregister | s shutdown | q/Esc quit"
     ).style(Style::default().fg(Color::DarkGray));
     frame.render_widget(help, chunks[2]);
+
+    if matches!(state.pending, Pending::Help) {
+        render_help(frame);
+    }
 }

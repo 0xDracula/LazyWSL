@@ -12,6 +12,7 @@ pub struct AppState {
 #[derive(Debug, Clone)]
 pub enum Pending {
     None,
+    Help,
     ConfirmUnregister { name: String },
     ConfirmShutdown,
 }

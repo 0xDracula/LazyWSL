@@ -89,6 +89,9 @@ impl App {
         match code {
             KeyCode::Char('q') | KeyCode::Char('Q') => return ControlFlow::Break(()),
             KeyCode::Esc => return ControlFlow::Break(()),
+            KeyCode::Char('h') => {
+                self.state.pending = Pending::Help;
+            },
             KeyCode::Char('r') | KeyCode::Char('R') => {
                 if let Some(d) = self.state.selected_distro().map(|d| d.name.clone()) {
                     self.dispatch(WorkerCmd::RunDistro(d)).await;
@@ -117,7 +120,7 @@ impl App {
                     self.state.status_line = "Unregister is destructive, press y to confirm!".to_string();
                 }
             }
-            KeyCode::Char('S') => {
+            KeyCode::Char('s') => {
                     self.state.pending = Pending::ConfirmShutdown;
                     self.state.status_line = "Shutdown stops all WSL2 VMs, press y to confirm!".to_string();
             }
@@ -169,6 +172,13 @@ impl App {
                 KeyCode::Char('q') => ControlFlow::Break(()),
                 _ => ControlFlow::Continue(()),
             },
+            Pending::Help => match code {
+                KeyCode::Esc => {
+                    self.state.pending = Pending::None;
+                    ControlFlow::Continue(())
+                }
+                _ => ControlFlow::Continue(())
+            }
         }
     }
 }
