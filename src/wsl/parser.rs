@@ -1,3 +1,6 @@
+use std::path::PathBuf;
+use winreg::enums::HKEY_CURRENT_USER;
+use winreg::RegKey;
 use crate::errors::WSLError;
 use crate::wsl::WslVersion;
 use super::types::{Distribution, DistroState};
@@ -17,7 +20,41 @@ pub fn parse_wsl_output(decoded: &str) -> Vec<Distribution> {
         }
     }
 
+    let install_paths = get_distro_path().unwrap_or_default();
+
+    for distro in &mut distros {
+        distro.install_path = install_paths.iter().find(|(name, _)| name == &distro.name).map(|(_, path)| path.clone());
+    }
     distros
+}
+
+pub fn get_distro_path() -> std::io::Result<Vec<(String, String)>> {
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let lxss = hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Lxss")?;
+
+    let mut result = Vec::new();
+
+    for guid in lxss.enum_keys() {
+        let guid = guid?;
+
+        let key = lxss.open_subkey(&guid)?;
+
+        let name: String = match key.get_value("DistributionName") {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+
+        let install_path: String = match key.get_value("BasePath") {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+
+        let install_path = install_path.strip_prefix(r"\\?\").unwrap_or(&install_path).to_string();
+
+        result.push((name, install_path));
+
+    }
+    Ok(result)
 }
 
 pub fn parse_line_distro(line: &str) -> Option<Distribution> {
@@ -42,7 +79,7 @@ pub fn parse_line_distro(line: &str) -> Option<Distribution> {
     let version_str = parts.last()?;
     let version_u8: u8 = version_str.parse().ok()?;
     let version = WslVersion::from(version_u8);
-    
+
     let state_str = parts.get(parts.len() - 2)?;
     let state = DistroState::from(*state_str);
 
@@ -55,6 +92,7 @@ pub fn parse_line_distro(line: &str) -> Option<Distribution> {
         state,
         version,
         is_default,
+        install_path: None,
     })
 }
 

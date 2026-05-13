@@ -3,6 +3,7 @@ use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph};
+use thiserror::__private18::AsDisplay;
 use crate::app::{AppState, Pending };
 
 pub fn render(frame: &mut Frame<'_>, state: &AppState) {
@@ -14,6 +15,14 @@ pub fn render(frame: &mut Frame<'_>, state: &AppState) {
             Constraint::Length(4),
             Constraint::Length(1),
         ]).split(area);
+
+    let main_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage(40),
+            Constraint::Percentage(60),
+        ])
+        .split(chunks[0]);
 
     let items: Vec<ListItem> = state
         .distributions
@@ -54,8 +63,39 @@ pub fn render(frame: &mut Frame<'_>, state: &AppState) {
         list_state.select(Some(state.selected));
     }
 
-    frame.render_stateful_widget(list, chunks[0], &mut list_state);
+    frame.render_stateful_widget(list, main_chunks[0], &mut list_state);
 
+    let details_lines = if let Some(d) = state.selected_distro() {
+        vec![
+            Line::from(vec![
+                Span::styled("Name: ",
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw(&d.name)
+            ]),
+
+            Line::from(""),
+
+            Line::from(vec![
+                Span::styled("Version: ",
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw(
+                    format!("V{}", d.version.clone().to_string())
+                )
+            ]),
+
+            Line::from(""),
+
+            Line::from(vec![
+                Span::styled("Install Path: ",
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw(
+                    d.install_path.clone().unwrap_or_else(|| { "Unknown".to_string() })
+                )
+            ])
+        ]
+    } else {
+         vec![Line::from("No distro selected!")]
+    };
+
+    let details = Paragraph::new(details_lines).block(Block::default().borders(Borders::ALL).title(" Details "));
+    frame.render_widget(details, main_chunks[1]);
     let mut status_txt = state.status_line.clone();
     match &state.pending {
         Pending::None => {}

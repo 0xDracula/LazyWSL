@@ -1,5 +1,6 @@
 use std::fmt;
 use std::fmt::Formatter;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Distribution {
@@ -8,6 +9,7 @@ pub struct Distribution {
     pub state: DistroState,
     pub version: WslVersion,
     pub is_default: bool,
+    pub install_path: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

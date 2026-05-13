@@ -9,6 +9,7 @@ ratatui = "0.30.0"
 thiserror = "2.0.18"
 tokio = { version = "1.52.3", features = ["full"] }
 tokio-stream = "0.1.18"
+winreg = "0.56.0"
 
 [profile.release]
 lto = true
