@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::time::{Duration};
 use tokio::sync::mpsc::Sender;
 use tokio::time;
@@ -13,6 +14,16 @@ pub enum WorkerCmd {
     SetDefault(String),
     Shutdown,
     OpenShell(String),
+    Export {
+        distro: String,
+        output: PathBuf,
+    },
+
+    Import {
+        name: String,
+        tar_path: PathBuf,
+        install_path: PathBuf,
+    },
 }
 
 #[derive(Debug)]
@@ -150,6 +161,36 @@ async fn process_cmd(wsl: &WslProcess, evt_tx: &Sender<WorkerEvent>, cmd: Worker
             WorkerEvent::DistroUpdated {
                 distributions,
                 status_line,
+            }
+        }
+        WorkerCmd::Import { name, tar_path, install_path } => {
+            let op = wsl.import(&name, &tar_path, &install_path).await;
+
+            let distributions = wsl.get_distros().await;
+
+            let status_line = match op {
+                Ok(()) => format!("Imported `{name}`"),
+                Err(e) => format!("Import failed {e}"),
+            };
+
+            WorkerEvent::DistroUpdated {
+                distributions,
+                status_line
+            }
+        }
+        WorkerCmd::Export { distro, output } => {
+            let op = wsl.export(&distro, &output).await;
+
+            let distributions = wsl.get_distros().await;
+
+            let status_line = match op {
+                Ok(()) => format!("Exported {distro}"),
+                Err(e) => format!("Export failed {e}"),
+            };
+
+            WorkerEvent::DistroUpdated {
+                distributions,
+                status_line
             }
         }
     };

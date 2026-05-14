@@ -1,3 +1,4 @@
+use ratatree::FilePicker;
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
@@ -109,7 +110,7 @@ fn render_help(frame: &mut Frame<'_>) {
     frame.render_widget(help, pop_up);
 }
 
-pub fn render(frame: &mut Frame<'_>, state: &AppState) {
+pub fn render(frame: &mut Frame<'_>, state: &mut AppState) {
     let area = frame.area();
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -235,7 +236,7 @@ pub fn render(frame: &mut Frame<'_>, state: &AppState) {
     let details = Paragraph::new(details_lines).wrap( Wrap { trim: false } ).block(Block::default().borders(Borders::ALL).title(" Details "));
     frame.render_widget(details, main_chunks[1]);
     let mut status_txt = state.status_line.clone();
-    match &state.pending {
+    match &mut state.pending {
         Pending::None => {}
         Pending::Help => {}
         Pending::ConfirmUnregister { name } => {
@@ -245,6 +246,24 @@ pub fn render(frame: &mut Frame<'_>, state: &AppState) {
         }
         Pending::ConfirmShutdown => {
             status_txt.push_str("\n[y/n] Shut down the entire WSL VMs?");
+        }
+        Pending::ExportPicker { distro, picker } => {
+            let popup = centered_rect(
+                80,
+                80,
+                frame.area(),
+            );
+
+            frame.render_widget(
+                Clear,
+                popup,
+            );
+
+            frame.render_stateful_widget(
+                FilePicker::default(),
+                popup,
+                picker,
+            );
         }
     }
 

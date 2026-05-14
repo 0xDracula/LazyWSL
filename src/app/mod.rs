@@ -6,6 +6,8 @@ use crossterm::{
 };
 use std::io;
 use std::ops::ControlFlow;
+use crossterm::event::{KeyEvent, KeyModifiers};
+use ratatree::FilePickerState;
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use tokio::sync::mpsc::{self, Sender};
@@ -124,6 +126,14 @@ impl App {
                     self.state.pending = Pending::ConfirmShutdown;
                     self.state.status_line = "Shutdown stops all WSL2 VMs, press y to confirm!".to_string();
             }
+            KeyCode::Char('e') => {
+                if let Some(distro) = self.state.selected_distro() {
+                    self.state.pending = Pending::ExportPicker { distro: distro.name.clone(), picker: FilePickerState::builder()
+                        .start_dir(std::env::current_dir().unwrap())
+                        .mode(ratatree::PickerMode::DirsOnly)
+                        .build() }
+                }
+            }
             _ => {}
         }
         ControlFlow::Continue(())
@@ -141,7 +151,7 @@ impl App {
     }
 
     async fn handle_pending(&mut self, code: KeyCode) -> ControlFlow<()> {
-        let pending = self.state.pending.clone();
+        let pending = std::mem::replace(&mut self.state.pending, Pending::None);
         match pending {
             Pending::None => ControlFlow::Continue(()),
             Pending::ConfirmUnregister { name } => match code {
@@ -178,6 +188,46 @@ impl App {
                     ControlFlow::Continue(())
                 }
                 _ => ControlFlow::Continue(())
+            },
+            Pending::ExportPicker {
+                distro,
+                mut picker,
+            } => {
+                let key_event = KeyEvent::new(
+                    code,
+                    KeyModifiers::NONE,
+                );
+
+                picker.handle_event(Event::Key(key_event));
+
+                match picker.result() {
+                    ratatree::PickerResult::Pending => {
+                        self.state.pending = Pending::ExportPicker {
+                            distro,
+                            picker,
+                        };
+
+                        ControlFlow::Continue(())
+                    },
+                    ratatree::PickerResult::Cancelled => {
+                        self.state.pending = Pending::None;
+                        self.state.status_line = "Export Cancelled".to_string();
+                        ControlFlow::Continue(())
+                    },
+                    ratatree::PickerResult::Selected(paths) => {
+                        if let Some(path) = paths.first() {
+                            let export_dir = if path.is_file() {
+                                path.parent().unwrap_or(path)
+                            } else {
+                                path
+                            };
+                            let output = export_dir.join(format!("{distro}.tar"));
+                            self.dispatch(WorkerCmd::Export { distro, output, }).await;
+                        }
+                        self.state.pending = Pending::None;
+                        ControlFlow::Continue(())
+                    }
+                }
             }
         }
     }
@@ -197,7 +247,7 @@ pub async fn run_tui() -> io::Result<()> {
     let mut app = App::new(cmd_tx);
     app.dispatch(WorkerCmd::Refresh).await;
 
-    terminal.draw(|f| ui::render(f, &app.state))?;
+    terminal.draw(|f| ui::render(f, &mut app.state))?;
 
     let mut events = EventStream::new();
 
@@ -208,20 +258,20 @@ pub async fn run_tui() -> io::Result<()> {
 
                 Some(ev) = evt_rx.recv() => {
                     app.apply_worker_event(ev);
-                    terminal.draw(|f| ui::render(f, &app.state))?;
+                    terminal.draw(|f| ui::render(f, &mut app.state))?;
                 }
 
                 reader = events.next() => {
                     match reader {
                         Some(Ok(ev)) => {
                             if matches!(&ev, Event::Resize(_, _)) {
-                                terminal.draw(|f| ui::render(f, &app.state))?;
+                                terminal.draw(|f| ui::render(f, &mut app.state))?;
                                 continue;
                             }
                             match app.handle_event(ev).await {
                                 ControlFlow::Break(()) => return Ok::<(), io::Error>(()),
                                 ControlFlow::Continue(()) => {
-                                    terminal.draw(|f| ui::render(f, &app.state))?;
+                                    terminal.draw(|f| ui::render(f, &mut app.state))?;
                                 }
                             }
                         }

@@ -1,6 +1,6 @@
+use ratatree::FilePickerState;
 use crate::wsl::Distribution;
 
-#[derive(Debug, Clone)]
 pub struct AppState {
     pub distributions: Vec<Distribution>,
     pub selected: usize,
@@ -9,12 +9,12 @@ pub struct AppState {
     pub pending: Pending,
 }
 
-#[derive(Debug, Clone)]
 pub enum Pending {
     None,
     Help,
     ConfirmUnregister { name: String },
     ConfirmShutdown,
+    ExportPicker { distro: String, picker: FilePickerState },
 }
 
 impl Default for AppState {

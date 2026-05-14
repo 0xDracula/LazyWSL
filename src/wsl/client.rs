@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::process::Output;
 use tokio::process::Command;
 use super::types::{ Distribution };
@@ -111,5 +112,14 @@ impl WslProcess {
         Ok(())
     }
 
+    pub async fn import(&self, name: &str, tar_path: &Path, install_path: &Path) -> Result<(), WSLError> {
+        self.run_wsl(&["--import", name, &install_path.to_string_lossy(), &tar_path.to_string_lossy()]).await?;
+        Ok(())
+    }
+
+    pub async fn export(&self, distro: &str, output: &Path) -> Result<(), WSLError> {
+        self.run_wsl(&["--export", distro, &output.to_string_lossy()]).await?;
+        Ok(())
+    }
 }
 
