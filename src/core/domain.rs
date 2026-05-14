@@ -1,5 +1,4 @@
-use std::fmt;
-use std::fmt::Formatter;
+use std::fmt::{ self, Formatter };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Distribution {
@@ -9,7 +8,7 @@ pub struct Distribution {
     pub version: WslVersion,
     pub is_default: bool,
     pub install_path: Option<String>,
-    pub size_byes: Option<u64>,
+    pub size_bytes: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

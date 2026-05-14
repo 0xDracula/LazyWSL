@@ -3,7 +3,7 @@ use std::path::Path;
 use winreg::enums::HKEY_CURRENT_USER;
 use winreg::RegKey;
 use crate::wsl::WslVersion;
-use super::types::{Distribution, DistroState};
+use crate::core::{Distribution, DistroState};
 
 pub fn parse_wsl_output(decoded: &str) -> Vec<Distribution> {
     let mut distros = vec![];
@@ -13,7 +13,6 @@ pub fn parse_wsl_output(decoded: &str) -> Vec<Distribution> {
     }
 
     let lines: Vec<&str> = decoded.lines().collect();
-
     for line in lines.iter().skip(1) {
         if let Some(distro) = parse_line_distro(line) {
             distros.push(distro);
@@ -21,16 +20,18 @@ pub fn parse_wsl_output(decoded: &str) -> Vec<Distribution> {
     }
 
     let install_paths = get_distro_path().unwrap_or_default();
-
     for distro in &mut distros {
-        distro.install_path = install_paths.iter().find(|(name, _)| name == &distro.name).map(|(_, path)| path.clone());
+        distro.install_path = install_paths.iter()
+            .find(|(name, _)| name == &distro.name)
+            .map(|(_, path)| path.clone());
     }
 
     for distro in &mut distros {
         if let Some(path) = distro.install_path.as_ref() {
-            distro.size_byes = get_distro_size(path);
+            distro.size_bytes = get_distro_size(path);
         }
     }
+
     distros
 }
 
@@ -39,56 +40,42 @@ pub fn get_distro_path() -> std::io::Result<Vec<(String, String)>> {
     let lxss = hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Lxss")?;
 
     let mut result = Vec::new();
-
     for guid in lxss.enum_keys() {
         let guid = guid?;
-
         let key = lxss.open_subkey(&guid)?;
 
         let name: String = match key.get_value("DistributionName") {
             Ok(v) => v,
             Err(_) => continue,
         };
-
         let install_path: String = match key.get_value("BasePath") {
             Ok(v) => v,
             Err(_) => continue,
         };
-
-        let install_path = install_path.strip_prefix(r"\\?\").unwrap_or(&install_path).to_string();
+        let install_path = install_path
+            .strip_prefix(r"\\?\")
+            .unwrap_or(&install_path).to_string();
 
         result.push((name, install_path));
-
     }
+
     Ok(result)
 }
 
 pub fn get_distro_size(install_path: &String) -> Option<u64> {
     let vhdx = Path::new(install_path).join("ext4.vhdx");
-
     let metadata = fs::metadata(vhdx).ok()?;
-
     Some(metadata.len())
 }
 
 pub fn parse_line_distro(line: &str) -> Option<Distribution> {
     let trimmed = line.trim();
-    if trimmed.is_empty() {
-        return None;
-    }
+    if trimmed.is_empty() { return None; }
 
-    // check if it's the default distro
     let is_default = line.starts_with("*") || line.starts_with(" *");
-
-    // remove the asterisk if present, and normalize spacing
     let normalized = line.replace("*", " ");
-
-    // split by whitespaces and filter empty strings
     let parts: Vec<&str> = normalized.split_whitespace().collect();
-
-    if parts.len() < 3 {
-        return None;
-    }
+    if parts.len() < 3 { return None; }
 
     let version_str = parts.last()?;
     let version_u8: u8 = version_str.parse().ok()?;
@@ -107,7 +94,7 @@ pub fn parse_line_distro(line: &str) -> Option<Distribution> {
         version,
         is_default,
         install_path: None,
-        size_byes: None,
+        size_bytes: None,
     })
 }
 

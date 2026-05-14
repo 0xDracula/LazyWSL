@@ -1,9 +1,8 @@
 use std::path::Path;
 use std::process::Output;
 use tokio::process::Command;
-use super::types::{ Distribution };
-use super::parser::{ parse_wsl_output };
-use crate::errors::*;
+use super::parser::parse_wsl_output;
+use crate::core::{ Distribution, WSLError };
 
 pub fn distro_exists(name: &str, distros: &[Distribution]) -> Result<(), WSLError> {
     if distros.iter().any(|d| d.name == name) {
@@ -16,12 +15,7 @@ pub fn distro_exists(name: &str, distros: &[Distribution]) -> Result<(), WSLErro
 pub struct WslProcess;
 
 impl WslProcess {
-
-    // helpers
-
-    pub fn new() -> Self {
-        Self
-    }
+    pub fn new() -> Self { Self }
     async fn run_wsl(&self, args: &[&str]) -> Result<Output, WSLError> {
         let output = Command::new("wsl.exe")
             .args(args)
@@ -39,15 +33,10 @@ impl WslProcess {
         Ok(output)
     }
 
-    // reads
-
     pub async fn get_distros(&self) -> Result<Vec<Distribution>, WSLError> {
-        let output = self.run_wsl(&["--list", "--verbose"])
-            .await?;
+        let output = self.run_wsl(&["--list", "--verbose"]).await?;
 
-        if output.stdout.is_empty() {
-            return Err(WSLError::NoDistros);
-        }
+        if output.stdout.is_empty() { return Err(WSLError::NoDistros); }
 
         // Convert UTF-16 to UTF-8 due to wsl output format
         let utf16: Vec<u16> = output.stdout
@@ -59,13 +48,9 @@ impl WslProcess {
         Ok(parse_wsl_output(&decoded))
     }
 
-
-    //actions
-
     pub async fn terminate(&self, name: &str) -> Result<(), WSLError> {
         let distros = self.get_distros().await?;
         distro_exists(name, &distros)?;
-
         self.run_wsl(&["--terminate", name]).await?;
         Ok(())
     }
@@ -73,18 +58,14 @@ impl WslProcess {
     pub async fn unregister(&self, name: &str) -> Result<(), WSLError> {
         let distros = self.get_distros().await?;
         distro_exists(name, &distros)?;
-
         self.run_wsl(&["--unregister", name]).await?;
-
         Ok(())
     }
 
     pub async fn set_default(&self, name: &str) -> Result<(), WSLError> {
         let distros = self.get_distros().await?;
         distro_exists(name, &distros)?;
-
         self.run_wsl(&["--set-default", name]).await?;
-
         Ok(())
     }
 
@@ -108,7 +89,6 @@ impl WslProcess {
         let distros = self.get_distros().await?;
         distro_exists(name, &distros)?;
         self.run_wsl(&["--distribution", name, "--", "/bin/true"]).await?;
-
         Ok(())
     }
 
@@ -122,4 +102,3 @@ impl WslProcess {
         Ok(())
     }
 }
-
