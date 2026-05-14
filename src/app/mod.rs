@@ -7,13 +7,14 @@ use crossterm::{
 use std::io;
 use std::ops::ControlFlow;
 use crossterm::event::{KeyEvent, KeyModifiers};
-use ratatree::FilePickerState;
+use ratatree::{FilePickerState, PickerResult};
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use tokio::sync::mpsc::{self, Sender};
 pub use state::{AppState, Pending};
 use crate::ui;
 use tokio_stream::StreamExt;
+use crate::app::Pending::ImportNameInput;
 
 mod state;
 mod worker;
@@ -134,6 +135,11 @@ impl App {
                         .build() }
                 }
             }
+            KeyCode::Char('i') => {
+                self.state.pending = Pending::ImportTarPicker {
+                    picker: FilePickerState::builder().start_dir(std::env::current_dir().unwrap()).build(),
+                };
+            }
             _ => {}
         }
         ControlFlow::Continue(())
@@ -189,6 +195,100 @@ impl App {
                 }
                 _ => ControlFlow::Continue(())
             },
+            ImportNameInput { tar_path, install_dir, mut input } => {
+                match code {
+                    KeyCode::Char(c) => {
+                        input.push(c);
+                        self.state.pending = ImportNameInput {
+                            tar_path,
+                            install_dir,
+                            input,
+                        };
+                        ControlFlow::Continue(())
+                    }
+                    KeyCode::Backspace => {
+                        input.pop();
+
+                        self.state.pending = ImportNameInput {
+                            tar_path,
+                            install_dir,
+                            input,
+                        };
+                        ControlFlow::Continue(())
+                    }
+                    KeyCode::Enter => {
+                        self.dispatch(WorkerCmd::Import { name: input, tar_path, install_path: install_dir }).await;
+                        self.state.pending = Pending::None;
+                        ControlFlow::Continue(())
+                    }
+                    _ => {
+                        self.state.pending = ImportNameInput {
+                            tar_path,
+                            install_dir,
+                            input,
+                        };
+                        ControlFlow::Continue(())
+                    }
+                }
+            }
+            Pending::ImportInstallPicker {
+                tar_path,
+                mut picker,
+            } => {
+                let key_event = KeyEvent::new(code, KeyModifiers::NONE);
+                picker.handle_event(Event::Key(key_event));
+                match picker.result() {
+                    PickerResult::Pending => {
+                        self.state.pending = Pending::ImportInstallPicker {
+                            tar_path,
+                            picker,
+                        };
+                        ControlFlow::Continue(())
+                    }
+                    PickerResult::Cancelled => {
+                        self.state.pending = Pending::None;
+                        ControlFlow::Continue(())
+                    }
+                    PickerResult::Selected(paths) => {
+                        if let Some(path) = paths.first() {
+                            let install_dir = if path.is_file() {
+                                path.parent().unwrap_or(path).to_path_buf()
+                            } else {
+                                path.clone()
+                            };
+
+                            self.state.pending = ImportNameInput { tar_path, install_dir, input: String::new() };
+                        }
+                        ControlFlow::Continue(())
+                    }
+                }
+
+            },
+            Pending::ImportTarPicker {
+              mut picker,
+            } => {
+                let key_event = KeyEvent::new(code, KeyModifiers::NONE);
+                picker.handle_event(Event::Key(key_event));
+                match picker.result() {
+                    PickerResult::Pending => {
+                        self.state.pending = Pending::ImportTarPicker {picker};
+                        ControlFlow::Continue(())
+                    }
+                    PickerResult::Cancelled => {
+                        self.state.pending = Pending::None;
+                        ControlFlow::Continue(())
+                    }
+                    PickerResult::Selected(paths) => {
+                        if let Some(path) = paths.first() {
+                            self.state.pending = Pending::ImportInstallPicker {
+                                tar_path: path.clone(),
+                                picker: FilePickerState::builder().start_dir(std::env::current_dir().unwrap()).build()
+                            };
+                        }
+                        ControlFlow::Continue(())
+                    }
+                }
+            }
             Pending::ExportPicker {
                 distro,
                 mut picker,
@@ -201,7 +301,7 @@ impl App {
                 picker.handle_event(Event::Key(key_event));
 
                 match picker.result() {
-                    ratatree::PickerResult::Pending => {
+                    PickerResult::Pending => {
                         self.state.pending = Pending::ExportPicker {
                             distro,
                             picker,
@@ -209,12 +309,12 @@ impl App {
 
                         ControlFlow::Continue(())
                     },
-                    ratatree::PickerResult::Cancelled => {
+                    PickerResult::Cancelled => {
                         self.state.pending = Pending::None;
                         self.state.status_line = "Export Cancelled".to_string();
                         ControlFlow::Continue(())
                     },
-                    ratatree::PickerResult::Selected(paths) => {
+                    PickerResult::Selected(paths) => {
                         if let Some(path) = paths.first() {
                             let export_dir = if path.is_file() {
                                 path.parent().unwrap_or(path)

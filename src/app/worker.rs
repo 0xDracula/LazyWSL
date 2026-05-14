@@ -18,7 +18,6 @@ pub enum WorkerCmd {
         distro: String,
         output: PathBuf,
     },
-
     Import {
         name: String,
         tar_path: PathBuf,

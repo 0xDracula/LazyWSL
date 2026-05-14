@@ -265,6 +265,40 @@ pub fn render(frame: &mut Frame<'_>, state: &mut AppState) {
                 picker,
             );
         }
+        Pending::ImportNameInput {
+            input, ..
+        } => {
+            let pop_up = centered_rect(50, 20, frame.area());
+            let paragraph = Paragraph::new(format!("Distro name: \n\n{}", input)).block(Block::default().borders(Borders::ALL).title(" Import "));
+            frame.render_widget(Clear, pop_up);
+            frame.render_widget(paragraph, pop_up);
+        }
+        Pending::ImportTarPicker {
+            picker,
+        } |
+        Pending::ImportInstallPicker {
+            picker,
+            ..
+        } => {
+
+            let popup =
+                centered_rect(
+                    80,
+                    80,
+                    frame.area(),
+                );
+
+            frame.render_widget(
+                Clear,
+                popup,
+            );
+
+            frame.render_stateful_widget(
+                FilePicker::default(),
+                popup,
+                picker,
+            );
+        }
     }
 
     let status = Paragraph::new(status_txt).block(

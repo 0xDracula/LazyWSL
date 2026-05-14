@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use ratatree::FilePickerState;
 use crate::wsl::Distribution;
 
@@ -15,6 +16,9 @@ pub enum Pending {
     ConfirmUnregister { name: String },
     ConfirmShutdown,
     ExportPicker { distro: String, picker: FilePickerState },
+    ImportTarPicker { picker: FilePickerState },
+    ImportInstallPicker { tar_path: PathBuf, picker: FilePickerState },
+    ImportNameInput { tar_path: PathBuf, install_dir: PathBuf, input: String },
 }
 
 impl Default for AppState {
