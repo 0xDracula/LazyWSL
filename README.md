@@ -17,3 +17,24 @@ Built with Rust, Ratatui, inspired by wsl-ui, LazyGit, and LazyDocker.
 ## Overview 🐧
 
 ![image](https://cdn.hackclub.com/019e234c-1923-740e-817e-81f08a8d8494/Screenshot%202026-05-14%20004355.png)
+
+## Config
+
+Config file is located at `C:\Users\<YourUser>\AppData\Roaming\LazyWSL\` in this format:
+```yaml
+{
+  "timeouts": {
+    "quickSecs": 5,
+    "defaultSecs": 15,
+    "longSecs": 60
+  },
+  "refreshSecs": 2
+}
+```
+quicksecs: timeout for quick commands
+
+defaultSecs: timeout for default commands
+
+longSecs: timeout for long time operations such as import/export
+
+refreshSecs: how often the distro list gets refreshed

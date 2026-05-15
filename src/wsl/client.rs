@@ -1,6 +1,9 @@
 use std::path::Path;
 use std::process::Output;
+use std::time::Duration;
 use tokio::process::Command;
+use tokio::time::timeout;
+use crate::config;
 use super::parser::parse_wsl_output;
 use crate::core::{ Distribution, WSLError };
 
@@ -16,12 +19,20 @@ pub struct WslProcess;
 
 impl WslProcess {
     pub fn new() -> Self { Self }
+
     async fn run_wsl(&self, args: &[&str]) -> Result<Output, WSLError> {
-        let output = Command::new("wsl.exe")
-            .args(args)
-            .output()
-            .await
-            .map_err(|_| WSLError::NotInstalled)?;
+        self.run_wsl_with_timeout(args, config::load_or_create().timeouts.default_secs).await
+    }
+    async fn run_wsl_with_timeout(&self, args: &[&str], timeout_secs: u64) -> Result<Output, WSLError> {
+        let output =  timeout(Duration::from_secs(timeout_secs), async {
+            Command::new("wsl.exe")
+                .args(args)
+                .output()
+                .await
+        }).await.map_err(|_| WSLError::CommandFailed(std::io::Error::new(
+            std::io::ErrorKind::TimedOut,
+            format!("WSL command timed out after {timeout_secs}s"),
+        )))?.map_err(|_| WSLError::NotInstalled)?;
 
         if !output.status.success() {
             return Err(WSLError::CommandFailed(std::io::Error::new(
@@ -31,6 +42,14 @@ impl WslProcess {
         }
 
         Ok(output)
+    }
+
+    async fn run_wsl_quick(&self, args: &[&str]) -> Result<Output, WSLError> {
+        self.run_wsl_with_timeout(args, config::load_or_create().timeouts.quick_secs).await
+    }
+
+    async fn run_wsl_long(&self, args: &[&str]) -> Result<Output, WSLError> {
+        self.run_wsl_with_timeout(args, config::load_or_create().timeouts.long_secs).await
     }
 
     pub async fn get_distros(&self) -> Result<Vec<Distribution>, WSLError> {

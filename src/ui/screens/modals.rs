@@ -5,7 +5,7 @@ use ratatree::FilePicker;
 use crate::app::{AppState, Modal};
 use crate::ui::screens::help::render_help;
 
-fn centered_rect(x: u16, y: u16, area: Rect) -> Rect {
+pub fn centered_rect(x: u16, y: u16, area: Rect) -> Rect {
     let vertical = Layout::default()
         .direction(Direction::Vertical)
         .constraints([

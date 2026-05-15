@@ -4,6 +4,7 @@ use tokio::sync::mpsc::Sender;
 use tokio::time::{ self, MissedTickBehavior };
 use crate::wsl::WSLService;
 use crate::app::worker::commands::{ WorkerCmd, WorkerEvent };
+use crate::config;
 
 pub fn spawn_wsl_worker(
     cmd_rx: tokio::sync::mpsc::Receiver<WorkerCmd>,
@@ -22,8 +23,8 @@ async fn run_wsl_worker(
     wsl: Arc<dyn WSLService>,
 ) {
     let mut tick = time::interval_at(
-        time::Instant::now() + Duration::from_secs(2),
-        Duration::from_secs(2)
+        time::Instant::now() + Duration::from_secs(config::load_or_create().refresh_secs),
+        Duration::from_secs(config::load_or_create().refresh_secs)
     );
     tick.set_missed_tick_behavior(MissedTickBehavior::Skip);
 

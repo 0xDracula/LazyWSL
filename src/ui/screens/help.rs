@@ -1,28 +1,8 @@
 use ratatui::Frame;
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
-
-fn centered_rect(x: u16, y: u16, area: Rect) -> Rect {
-    let vertical = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage((100 - y) / 2),
-            Constraint::Percentage(y),
-            Constraint::Percentage((100 - y) / 2),
-        ])
-        .split(area);
-
-    Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage((100 - x) / 2),
-            Constraint::Percentage(x),
-            Constraint::Percentage((100 - x) / 2),
-        ])
-        .split(vertical[1])[1]
-}
+use crate::ui::screens::modals::centered_rect;
 
 pub fn render_help(frame: &mut Frame<'_>) {
     let pop_up = centered_rect(60, 70, frame.area());
