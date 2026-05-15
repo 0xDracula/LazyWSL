@@ -84,7 +84,7 @@ impl WslProcess {
     pub async fn set_default(&self, name: &str) -> Result<(), WSLError> {
         let distros = self.get_distros().await?;
         distro_exists(name, &distros)?;
-        self.run_wsl(&["--set-default", name]).await?;
+        self.run_wsl_quick(&["--set-default", name]).await?;
         Ok(())
     }
 
@@ -112,12 +112,12 @@ impl WslProcess {
     }
 
     pub async fn import(&self, name: &str, tar_path: &Path, install_path: &Path) -> Result<(), WSLError> {
-        self.run_wsl(&["--import", name, &install_path.to_string_lossy(), &tar_path.to_string_lossy()]).await?;
+        self.run_wsl_long(&["--import", name, &install_path.to_string_lossy(), &tar_path.to_string_lossy()]).await?;
         Ok(())
     }
 
     pub async fn export(&self, distro: &str, output: &Path) -> Result<(), WSLError> {
-        self.run_wsl(&["--export", distro, &output.to_string_lossy()]).await?;
+        self.run_wsl_long(&["--export", distro, &output.to_string_lossy()]).await?;
         Ok(())
     }
 }

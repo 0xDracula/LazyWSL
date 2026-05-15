@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use ratatree::FilePickerState;
+use ratatui_explorer::FileExplorer;
 use crate::wsl::Distribution;
 
 #[derive(Debug)]
@@ -20,9 +20,9 @@ pub enum Modal {
     Help,
     ConfirmUnregister { name: String },
     ConfirmShutdown,
-    ExportPicker { distro: String, picker: FilePickerState },
-    ImportTarPicker { picker: FilePickerState },
-    ImportInstallPicker { tar_path: PathBuf, picker: FilePickerState },
+    ExportPicker { distro: String, explorer: FileExplorer },
+    ImportTarPicker { explorer: FileExplorer },
+    ImportInstallPicker { tar_path: PathBuf, explorer: FileExplorer },
     ImportNameInput { tar_path: PathBuf, install_dir: PathBuf, input: String },
 }
 

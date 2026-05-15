@@ -1,6 +1,6 @@
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph};
+use ratatui::widgets::{Block, Borders, Clear, FrameExt, Paragraph};
 use ratatree::FilePicker;
 use crate::app::{AppState, Modal};
 use crate::ui::screens::help::render_help;
@@ -46,10 +46,10 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
             frame.render_widget(para, pop);
         }
 
-        Modal::ExportPicker { picker, .. } => {
+        Modal::ExportPicker { explorer, .. } => {
             let popup = centered_rect(80, 80, frame.area());
             frame.render_widget(Clear, popup);
-            frame.render_stateful_widget(FilePicker::default(), popup, picker);
+            frame.render_widget_ref(explorer.widget(), popup);
         }
 
         Modal::ImportNameInput { input, .. } => {
@@ -60,11 +60,11 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
             frame.render_widget(paragraph, pop_up);
         }
 
-        Modal::ImportTarPicker { picker }
-        | Modal::ImportInstallPicker { picker, .. } => {
+        Modal::ImportTarPicker { explorer }
+        | Modal::ImportInstallPicker { explorer, .. } => {
             let popup = centered_rect(80, 80, frame.area());
             frame.render_widget(Clear, popup);
-            frame.render_stateful_widget(FilePicker::default(), popup, picker);
+            frame.render_widget_ref(explorer.widget(), popup);
         }
     }
 }

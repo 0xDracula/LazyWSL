@@ -6,6 +6,7 @@ use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScree
 use ratatree::FilePickerState;
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
+use ratatui_explorer::FileExplorer;
 use tokio_stream::StreamExt;
 use tokio::sync::mpsc::{self, Sender};
 use crate::app::{AppState, Modal};
@@ -180,76 +181,88 @@ async fn handle_modal_key(state: &mut AppState, cmd_tx: &mpsc::Sender<WorkerCmd>
             ControlFlow::Continue(())
         }
 
-        Modal::ImportInstallPicker { tar_path, mut picker } => {
-            let key_event = KeyEvent::new(code, KeyModifiers::NONE);
-            picker.handle_event(Event::Key(key_event));
-            match picker.result() {
-                ratatree::PickerResult::Pending => {
-                    state.modal = Modal::ImportInstallPicker { tar_path, picker };
-                }
-                ratatree::PickerResult::Cancelled => {
+        Modal::ImportInstallPicker { tar_path, mut explorer } => {
+            match code {
+                KeyCode::Esc => {
                     state.modal = Modal::None;
+                    ControlFlow::Continue(())
                 }
-                ratatree::PickerResult::Selected(paths) => {
-                    if let Some(path) = paths.first() {
-                        let install_dir = if path.is_file() {
-                            path.parent().unwrap_or(path).to_path_buf()
-                        } else {
-                            path.clone()
-                        };
-                        state.modal = Modal::ImportNameInput { tar_path, install_dir, input: String::new() };
-                    }
+                KeyCode::Enter => {
+                    let path = explorer.current().path.clone();
+                    let install_dir = if path.is_file() {
+                        path.parent().unwrap_or(&path).to_path_buf()
+                    } else {
+                        path
+                    };
+                    state.modal = Modal::ImportNameInput { tar_path, install_dir, input: String::new() };
+                    ControlFlow::Continue(())
+                }
+                _ => {
+                    let key_event = KeyEvent::new(code, KeyModifiers::NONE);
+                    let _ = explorer.handle(&Event::Key(key_event));
+                    state.modal = Modal::ImportInstallPicker { tar_path, explorer };
+                    ControlFlow::Continue(())
                 }
             }
-            ControlFlow::Continue(())
         }
 
-        Modal::ImportTarPicker { mut picker } => {
-            let key_event = KeyEvent::new(code, KeyModifiers::NONE);
-            picker.handle_event(Event::Key(key_event));
-            match picker.result() {
-                ratatree::PickerResult::Pending => {
-                    state.modal = Modal::ImportTarPicker { picker };
-                }
-                ratatree::PickerResult::Cancelled => {
+        Modal::ImportTarPicker { mut explorer } => {
+            match code {
+                KeyCode::Esc => {
                     state.modal = Modal::None;
+                    ControlFlow::Continue(())
                 }
-                ratatree::PickerResult::Selected(paths) => {
-                    if let Some(path) = paths.first() {
-                        state.modal = Modal::ImportInstallPicker {
-                            tar_path: path.clone(),
-                            picker: FilePickerState::builder().start_dir(std::env::current_dir().unwrap()).build(),
-                        };
+                KeyCode::Enter => {
+                    let current = explorer.current();
+                    if current.is_dir {
+                        let key_event = KeyEvent::new(code, KeyModifiers::NONE);
+                        let _ = explorer.handle(&Event::Key(key_event));
+                        state.modal = Modal::ImportTarPicker { explorer };
+                        ControlFlow::Continue(())
+                    } else {
+                        let tar_path = current.path.clone();
+                        let mut next = FileExplorer::new().expect("Failed to create file explorer!");
+                        let _ = next.set_cwd(tar_path.parent().unwrap_or(&tar_path));
+                        let _ = next.set_filter_map(|f| if f.is_dir { Some(f) } else { None });
+                        state.modal = Modal::ImportInstallPicker { tar_path, explorer: next };
+                        ControlFlow::Continue(())
                     }
                 }
+                _ => {
+                    let key_event = KeyEvent::new(code, KeyModifiers::NONE);
+                    let _ = explorer.handle(&Event::Key(key_event));
+                    state.modal = Modal::ImportTarPicker { explorer };
+                    ControlFlow::Continue(())
+                }
             }
-            ControlFlow::Continue(())
         }
 
-        Modal::ExportPicker { distro, mut picker } => {
-            let key_event = KeyEvent::new(code, KeyModifiers::NONE);
-            picker.handle_event(Event::Key(key_event));
-            match picker.result() {
-                ratatree::PickerResult::Pending => {
-                    state.modal = Modal::ExportPicker { distro, picker };
-                }
-                ratatree::PickerResult::Cancelled => {
+        Modal::ExportPicker { distro, mut explorer } => {
+            match code {
+                KeyCode::Esc => {
                     state.modal = Modal::None;
-                    state.status_line = "Cancelled".to_string();
+                    state.status_line = "Cancelled..".to_string();
+                    ControlFlow::Continue(())
                 }
-                ratatree::PickerResult::Selected(paths) => {
-                    if let Some(path) = paths.first() {
-                        let export_dir = if path.is_file() {
-                            path.parent().unwrap_or(path)
-                        } else {
-                            path
-                        };
-                        let output = export_dir.join(format!("{distro}.tar"));
-                        dispatch(state, cmd_tx, WorkerCmd::Export { distro, output }).await;
-                    }
+                KeyCode::Enter => {
+                    let path = explorer.current().path.clone();
+                    let export_dir = if path.is_file() {
+                        path.parent().unwrap_or(&path).to_path_buf()
+                    } else {
+                        path
+                    };
+
+                    let output = export_dir.join(format!("{distro}.tar"));
+                    dispatch(state, cmd_tx, WorkerCmd::Export { distro, output }).await;
+                    ControlFlow::Continue(())
+                }
+                _ => {
+                    let key_event = KeyEvent::new(code, KeyModifiers::NONE);
+                    let _ = explorer.handle(&Event::Key(key_event));
+                    state.modal = Modal::ExportPicker { distro, explorer };
+                    ControlFlow::Continue(())
                 }
             }
-            ControlFlow::Continue(())
         }
 
         Modal::None => ControlFlow::Continue(())

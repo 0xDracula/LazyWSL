@@ -1,7 +1,28 @@
-use ratatree::FilePickerState;
+use ratatui_explorer::{FileExplorer, File, Theme, FileExplorerBuilder};
 use crate::app::actions::AppAction;
 use crate::app::{AppState, Modal};
 use crate::app::worker::commands::WorkerCmd;
+
+fn new_explorer() -> FileExplorer {
+    let theme = Theme::default().add_default_title();
+    FileExplorerBuilder::build_with_theme(theme).unwrap()
+}
+
+fn only_dirs(f: File) -> Option<File> {
+    if f.is_dir { Some(f) } else { None }
+}
+
+fn is_tar_name(name: &str) -> bool {
+    name.ends_with(".tar") || name.ends_with(".tar.gz") || name.ends_with(".tgz")
+}
+
+fn tar_or_dirs(f: File) -> Option<File> {
+    if f.is_dir || is_tar_name(&f.name) {
+        Some(f)
+    } else {
+        None
+    }
+}
 
 pub fn reduce(state: &mut AppState, action: AppAction) -> Option<WorkerCmd> {
     match action {
@@ -26,21 +47,20 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Option<WorkerCmd> {
         }
         AppAction::ExportPrompt => {
             if let Some(d) = state.selected_distro() {
+                let mut explorer = new_explorer();
+                let _ = explorer.set_filter_map(only_dirs);
                 state.modal = Modal::ExportPicker {
                     distro: d.name.clone(),
-                    picker: FilePickerState::builder()
-                        .start_dir(std::env::current_dir().unwrap())
-                        .mode(ratatree::PickerMode::DirsOnly)
-                        .build(),
+                    explorer,
                 };
             }
             None
         }
         AppAction::ImportPrompt => {
+            let mut explorer = new_explorer();
+            let _ = explorer.set_filter_map(tar_or_dirs);
             state.modal = Modal::ImportTarPicker {
-                picker: FilePickerState::builder()
-                    .start_dir(std::env::current_dir().unwrap())
-                    .build(),
+                explorer
             };
             None
         }
