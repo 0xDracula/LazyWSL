@@ -22,8 +22,8 @@ pub fn render_main(frame: &mut Frame<'_>, state: &mut AppState) {
     let main_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Percentage(30),
-            Constraint::Percentage(70),
+            Constraint::Percentage(35),
+            Constraint::Percentage(65),
         ]).split(chunks[0]);
 
     distro_list::render(frame, state, main_chunks[0]);

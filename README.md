@@ -16,7 +16,7 @@ Built with Rust, Ratatui, inspired by wsl-ui, LazyGit, and LazyDocker.
 
 ## Overview 🐧
 
-![image](https://cdn.hackclub.com/019e234c-1923-740e-817e-81f08a8d8494/Screenshot%202026-05-14%20004355.png)
+![image](https://cdn.hackclub.com/019e3232-c684-7a20-a12d-f4c01f244e85/Screenshot%202026-05-16%20221031.png)
 
 ## Config
 
