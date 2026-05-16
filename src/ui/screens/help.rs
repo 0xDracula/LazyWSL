@@ -3,7 +3,7 @@ use ratatui::Frame;
 use ratatui::layout::Alignment;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph};
+use ratatui::widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph};
 use crate::ui::screens::modals::centered_rect;
 
 fn keybind(key: &str, desc: &str) -> Line<'static> {
@@ -23,7 +23,9 @@ pub fn render_help(frame: &mut Frame<'_>) {
     let lines = vec![
         Line::from(""),
         Line::from(Span::styled("Keyboard Shortcuts", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
+
         Line::from(""),
+
         keybind("h", "Open help"),
         keybind("q", "Quit application"),
         keybind("r", "Run distro"),
@@ -32,6 +34,16 @@ pub fn render_help(frame: &mut Frame<'_>) {
         keybind("d", "Set default distro"),
         keybind("e", "Export distro"),
         keybind("i", "Import distro"),
+
+        Line::from(""),
+
+        Line::from(Span::styled("Danger Zone", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD))),
+
+        Line::from(""),
+
+        keybind("u", "Unregister distro"),
+        keybind("s", "Shutdown all distros"),
+
         Line::from(""),
         Line::from(Span::styled("ESC to close", Style::default().fg(Color::DarkGray).add_modifier(Modifier::ITALIC)))
     ];
@@ -40,6 +52,12 @@ pub fn render_help(frame: &mut Frame<'_>) {
         .alignment(Alignment::Left)
         .block(
             Block::default()
+                .title(" Help ")
+                .title_alignment(Alignment::Center)
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .border_style(Style::default().fg(Color::Rgb(100, 180, 255)))
+                .padding(Padding::horizontal(2)),
         );
     frame.render_widget(Clear, pop_up);
     frame.render_widget(help, pop_up);
