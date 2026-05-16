@@ -3,15 +3,14 @@ use std::ops::ControlFlow;
 use crossterm::event::{Event, EventStream, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use crossterm::execute;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
-use ratatree::FilePickerState;
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
-use ratatui_explorer::FileExplorer;
+use ratatui_explorer::{FileExplorerBuilder};
 use tokio_stream::StreamExt;
-use tokio::sync::mpsc::{self, Sender};
+use tokio::sync::mpsc;
 use crate::app::{AppState, Modal};
 use crate::app::actions::map_key;
-use crate::app::reducers::reduce;
+use crate::app::reducers::{explorer_theme, reduce};
 use crate::app::worker::commands::{WorkerCmd, WorkerEvent};
 use crate::app::worker::runner::spawn_wsl_worker;
 use crate::ui;
@@ -221,7 +220,7 @@ async fn handle_modal_key(state: &mut AppState, cmd_tx: &mpsc::Sender<WorkerCmd>
                         ControlFlow::Continue(())
                     } else {
                         let tar_path = current.path.clone();
-                        let mut next = FileExplorer::new().expect("Failed to create file explorer!");
+                        let mut next = FileExplorerBuilder::build_with_theme(explorer_theme()).unwrap();
                         let _ = next.set_cwd(tar_path.parent().unwrap_or(&tar_path));
                         let _ = next.set_filter_map(|f| if f.is_dir { Some(f) } else { None });
                         state.modal = Modal::ImportInstallPicker { tar_path, explorer: next };

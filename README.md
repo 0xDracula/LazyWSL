@@ -7,10 +7,10 @@ Built with Rust, Ratatui, inspired by wsl-ui, LazyGit, and LazyDocker.
 
 
 ### Functions
-- **List all WSL distros** with status and version (implemented)
-- **Start/Stop distros** Directly from TUI (implemented)
-- **Open shell** in any distro instantly (implemented)
-- **Set default distro** (implemented)
+- **List all WSL distros** with status and version
+- **Start/Stop distros** Directly from TUI
+- **Open shell** in any distro instantly
+- **Set default distro**  instantly
 - **Import/Export** distros as `.tar` files
 - **Help menu** with all keybindings
 
@@ -31,10 +31,10 @@ Config file is located at `C:\Users\<YourUser>\AppData\Roaming\LazyWSL\` in this
   "refreshSecs": 2
 }
 ```
-quicksecs: timeout for quick commands
+`quicksecs`: timeout for quick commands
 
-defaultSecs: timeout for default commands
+`defaultSecs`: timeout for default commands
 
-longSecs: timeout for long time operations such as import/export
+`longSecs`: timeout for long time operations such as import/export
 
-refreshSecs: how often the distro list gets refreshed
+`refreshSecs`: how often the distro list gets refreshed

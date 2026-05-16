@@ -2,10 +2,6 @@ use std::path::PathBuf;
 use ratatui_explorer::FileExplorer;
 use crate::wsl::Distribution;
 
-#[derive(Debug)]
-pub enum Screen {
-    Main,
-}
 pub struct AppState {
     pub distributions: Vec<Distribution>,
     pub selected: usize,

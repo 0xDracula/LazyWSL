@@ -1,7 +1,6 @@
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::widgets::{Block, Borders, Clear, FrameExt, Paragraph};
-use ratatree::FilePicker;
 use crate::app::{AppState, Modal};
 use crate::ui::screens::help::render_help;
 

@@ -1,11 +1,27 @@
+use ratatui::style::{Color, Modifier, Style};
+use ratatui::widgets::{Block, Borders, HighlightSpacing};
 use ratatui_explorer::{FileExplorer, File, Theme, FileExplorerBuilder};
 use crate::app::actions::AppAction;
 use crate::app::{AppState, Modal};
 use crate::app::worker::commands::WorkerCmd;
 
+pub fn explorer_theme() -> Theme {
+    Theme::default()
+        .with_block(Block::default().borders(Borders::ALL).title(" Explorer "))
+        .with_style(Style::default().fg(Color::Gray))
+        .with_dir_style(Style::default().fg(Color::Cyan))
+        .with_item_style(Style::default().fg(Color::White))
+        .with_highlight_item_style(Style::default().fg(Color::Black).bg(Color::Magenta).add_modifier(Modifier::BOLD))
+        .with_highlight_dir_style(Style::default().fg(Color::Black).bg(Color::Blue).add_modifier(Modifier::BOLD))
+        .with_scroll_padding(2)
+        .with_highlight_symbol("▶ ")
+        .with_highlight_spacing(HighlightSpacing::Always)
+        .with_title_bottom(|_| ratatui::text::Line::from(" ↑↓←→ to move · Enter to select "))
+        .with_title_top(|f| ratatui::text::Line::from(format!(" {}", f.cwd().display())))
+}
+
 fn new_explorer() -> FileExplorer {
-    let theme = Theme::default().add_default_title();
-    FileExplorerBuilder::build_with_theme(theme).unwrap()
+    FileExplorerBuilder::build_with_theme(explorer_theme()).unwrap()
 }
 
 fn only_dirs(f: File) -> Option<File> {
