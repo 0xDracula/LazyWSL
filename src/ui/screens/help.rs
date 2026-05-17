@@ -33,6 +33,7 @@ pub fn render_help(frame: &mut Frame<'_>) {
         keybind("d", "Set default distro"),
         keybind("e", "Export distro"),
         keybind("i", "Import distro"),
+        keybind("a", "Custom actions"),
 
         Line::from(""),
 

@@ -5,6 +5,13 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct CustomActions {
+    pub name: String,
+    pub command: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TimeoutConfig {
     pub quick_secs: u64,
     pub default_secs: u64,
@@ -16,6 +23,8 @@ pub struct TimeoutConfig {
 pub struct AppConfig {
     pub timeouts: TimeoutConfig,
     pub refresh_secs: u64,
+    #[serde(default)]
+    pub custom_actions: Vec<CustomActions>,
 }
 
 impl Default for AppConfig {
@@ -27,6 +36,7 @@ impl Default for AppConfig {
                 long_secs: 60,
             },
             refresh_secs: 2,
+            custom_actions: Vec::new(),
         }
     }
 }

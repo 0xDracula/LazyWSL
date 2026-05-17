@@ -88,6 +88,24 @@ fn apply_worker_event(state: &mut AppState, ev: WorkerEvent) {
             if let Ok(v) = distributions { state.distributions = v; }
             state.clamp_selection()
         }
+        WorkerEvent::CustomActionOutput { line } => {
+            if let Modal::ActionOuptut { lines, .. } = &mut state.modal {
+                lines.push(line);
+            }
+        }
+        WorkerEvent::CustomActionFinished { distributions, status_line } => {
+            state.busy = false;
+            state.status_line = status_line.clone();
+            if let Ok(v) = distributions {
+                state.distributions = v;
+            }
+            state.clamp_selection();
+            if let Modal::ActionOuptut { lines, finished, .. } = &mut state.modal {
+                lines.push(String::new());
+                lines.push(status_line);
+                *finished = true;
+            }
+        }
     }
 }
 
@@ -262,6 +280,66 @@ async fn handle_modal_key(state: &mut AppState, cmd_tx: &mpsc::Sender<WorkerCmd>
                     state.modal = Modal::ExportPicker { distro, explorer };
                     ControlFlow::Continue(())
                 }
+            }
+        }
+
+        Modal::CustomActionsMenu { distro, actions, mut selected } => {
+            match code {
+                KeyCode::Esc => {
+                    state.modal = Modal::None;
+                    ControlFlow::Continue(())
+                }
+                KeyCode::Up => {
+                    selected = selected.saturating_sub(1);
+                    state.modal = Modal::CustomActionsMenu { distro, actions, selected };
+                    ControlFlow::Continue(())
+                }
+                KeyCode::Down => {
+                    if !actions.is_empty() {
+                        selected = (selected + 1).min(actions.len() - 1);
+                    }
+                    state.modal = Modal::CustomActionsMenu { distro, actions, selected };
+                    ControlFlow::Continue(())
+                }
+                KeyCode::Enter => {
+                    if let Some(action) = actions.get(selected) {
+                        let action_name = action.name.clone();
+                        let command = action.command.clone();
+
+                        state.modal = Modal::ActionOuptut {
+                            distro: distro.clone(),
+                            action_name: action_name.clone(),
+                            lines: vec![format!("$ {command}")],
+                            finished: false,
+                        };
+
+                        dispatch(state, cmd_tx, WorkerCmd::RunCustomAction {
+                            distro,
+                            action_name,
+                            command
+                        }).await;
+                    }
+                    ControlFlow::Continue(())
+                }
+                _ => {
+                    state.modal = Modal::CustomActionsMenu { distro, actions, selected };
+                    ControlFlow::Continue(())
+                }
+            }
+        }
+
+        Modal::ActionOuptut { distro, action_name, lines, finished } => match code {
+            KeyCode::Esc | KeyCode::Char('q') if finished => {
+                state.modal = Modal::None;
+                ControlFlow::Continue(())
+            }
+
+            _ => {
+                state.modal = Modal::ActionOuptut {
+                    distro, action_name, lines, finished
+                };
+
+                ControlFlow::Continue(())
             }
         }
 

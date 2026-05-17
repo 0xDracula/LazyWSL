@@ -49,6 +49,10 @@ async fn run_wsl_worker(
 }
 
 async fn process_cmd(wsl: &Arc<dyn WSLService>, evt_tx: &Sender<WorkerEvent>, cmd: WorkerCmd) {
+    if let WorkerCmd::RunCustomAction { distro, action_name, command } = cmd {
+        process_custom_action(wsl, evt_tx, distro, action_name, command).await;
+        return;
+    }
     let evt = match cmd {
         WorkerCmd::Refresh => {
             let distributions = wsl.list().await;
@@ -130,7 +134,53 @@ async fn process_cmd(wsl: &Arc<dyn WSLService>, evt_tx: &Sender<WorkerEvent>, cm
             };
             WorkerEvent::DistroUpdated { distributions, status_line }
         }
+        WorkerCmd::RunCustomAction { .. } => unreachable!(),
     };
 
     let _ = evt_tx.send(evt).await;
+}
+
+async fn process_custom_action(
+    wsl: &Arc<dyn WSLService>,
+    evt_tx: &Sender<WorkerEvent>,
+    distro: String,
+    action_name: String,
+    command: String,
+) {
+    let (line_tx, mut line_rx) = tokio::sync::mpsc::channel::<String>(128);
+    let op = wsl.run_custom_action(&distro, &command, line_tx);
+    tokio::pin!(op);
+
+    let result = loop {
+        tokio::select! {
+            line = line_rx.recv() => {
+                if let Some(line) = line {
+                    if evt_tx.send(WorkerEvent::CustomActionOutput { line }).await.is_err() {
+                        return;
+                    }
+                }
+            }
+            result = &mut op => {
+                break result;
+            }
+        }
+    };
+
+    while let Ok(line) = line_rx.try_recv() {
+        if evt_tx
+            .send(WorkerEvent::CustomActionOutput { line })
+            .await
+            .is_err() {
+            return;
+        }
+    }
+
+    let distributions = wsl.list().await;
+    let status_line = match result {
+        Ok(()) => format!("Run {action_name} on {distro}"),
+        Err(e) => format!("Custom action {action_name} failed: {e}")
+    };
+
+    let _ = evt_tx
+        .send(WorkerEvent::CustomActionFinished { distributions, status_line }).await;
 }

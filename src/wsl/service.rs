@@ -1,6 +1,7 @@
 use std::path::Path;
 use async_trait::async_trait;
-use crate::core::{ Distribution, WSLError };
+use tokio::sync::mpsc::Sender;
+use crate::core::{Distribution, WSLError };
 
 #[async_trait]
 pub trait WSLService: Send + Sync {
@@ -18,6 +19,7 @@ pub trait WSLService: Send + Sync {
         install_path: &std::path::Path
     ) -> Result<(), WSLError>;
     async fn export(&self, distro: &str, output: &std::path::Path) -> Result<(), WSLError>;
+    async fn run_custom_action(&self, distro: &str, command: &str, output_tx: Sender<String>) -> Result<(), WSLError>;
 }
 
 pub struct WSLProcessService {
@@ -68,5 +70,9 @@ impl WSLService for WSLProcessService {
 
     async fn export(&self, distro: &str, output: &Path) -> Result<(), WSLError> {
         self.inner.export(distro, output).await
+    }
+
+    async fn run_custom_action(&self, distro: &str, command: &str, output_tx: Sender<String>) -> Result<(), WSLError> {
+        self.inner.run_custom_action(distro, command, output_tx).await
     }
 }

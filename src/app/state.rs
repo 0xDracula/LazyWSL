@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use ratatui_explorer::FileExplorer;
+use crate::config::CustomActions;
 use crate::wsl::Distribution;
 
 pub struct AppState {
@@ -20,6 +21,8 @@ pub enum Modal {
     ImportTarPicker { explorer: FileExplorer },
     ImportInstallPicker { tar_path: PathBuf, explorer: FileExplorer },
     ImportNameInput { tar_path: PathBuf, install_dir: PathBuf, input: String },
+    CustomActionsMenu { distro: String, actions: Vec<CustomActions>, selected: usize },
+    ActionOuptut { distro: String, action_name: String, lines: Vec<String>, finished: bool },
 }
 
 impl Default for AppState {

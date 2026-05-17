@@ -12,6 +12,7 @@ Built with Rust, Ratatui, inspired by wsl-ui, LazyGit, and LazyDocker.
 - **Open shell** in any distro instantly
 - **Set default distro**  instantly
 - **Import/Export** distros as `.tar` files
+- **Custom Actions** run reusable commands against any selected distro
 - **Help menu** with all keybindings
 
 ## Overview 🐧
@@ -21,14 +22,24 @@ Built with Rust, Ratatui, inspired by wsl-ui, LazyGit, and LazyDocker.
 ## Config
 
 Config file is located at `C:\Users\<YourUser>\AppData\Roaming\LazyWSL\` in this format:
-```yaml
+```json
 {
   "timeouts": {
     "quickSecs": 5,
     "defaultSecs": 15,
     "longSecs": 60
   },
-  "refreshSecs": 2
+  "refreshSecs": 2,
+  "customActions": [
+    {
+      "name": "Update packages",
+      "command": "sudo apt update && sudo apt upgrade -y"
+    },
+    {
+      "name": "Show release",
+      "command": "cat /etc/os-release"
+    }
+  ]
 }
 ```
 `quicksecs`: timeout for quick commands
@@ -38,3 +49,5 @@ Config file is located at `C:\Users\<YourUser>\AppData\Roaming\LazyWSL\` in this
 `longSecs`: timeout for long time operations such as import/export
 
 `refreshSecs`: how often the distro list gets refreshed
+
+`customActions`: reusable shell commands

@@ -4,6 +4,7 @@ use ratatui_explorer::{FileExplorer, File, Theme, FileExplorerBuilder};
 use crate::app::actions::AppAction;
 use crate::app::{AppState, Modal};
 use crate::app::worker::commands::WorkerCmd;
+use crate::config;
 
 pub fn explorer_theme() -> Theme {
     Theme::default()
@@ -78,6 +79,21 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Option<WorkerCmd> {
             state.modal = Modal::ImportTarPicker {
                 explorer
             };
+            None
+        }
+        AppAction::CustomActionsPrompt => {
+            if let Some(distro) = state.selected_distro().map(|d| d.name.clone()) {
+                let actions = config::load_or_create().custom_actions;
+                if actions.is_empty() {
+                    state.status_line = "No custom actions configured in settings.json.".to_string();
+                } else {
+                    state.modal = Modal::CustomActionsMenu {
+                        distro,
+                        actions,
+                        selected: 0,
+                    }
+                }
+            }
             None
         }
         AppAction::Ignore => None,
