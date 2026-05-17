@@ -1,4 +1,3 @@
-use crossterm::style::style;
 use ratatui::Frame;
 use ratatui::layout::Alignment;
 use ratatui::style::{Color, Modifier, Style};

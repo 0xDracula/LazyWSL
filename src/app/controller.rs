@@ -29,9 +29,10 @@ pub async fn run_tui() -> io::Result<()> {
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout))?;
 
     let mut state = AppState::default();
-    // TODO! Dispatch
 
     terminal.draw(|f| ui::render(f, &mut state))?;
+
+    dispatch(&mut state, &cmd_tx, WorkerCmd::Refresh).await;
 
     let mut events = EventStream::new();
 
