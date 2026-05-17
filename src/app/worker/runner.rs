@@ -1,13 +1,13 @@
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::mpsc::Sender;
+use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::time::{ self, MissedTickBehavior };
 use crate::wsl::WSLService;
 use crate::app::worker::commands::{ WorkerCmd, WorkerEvent };
 use crate::config;
 
 pub fn spawn_wsl_worker(
-    cmd_rx: tokio::sync::mpsc::Receiver<WorkerCmd>,
+    cmd_rx: Receiver<WorkerCmd>,
     evt_tx: Sender<WorkerEvent>,
     wsl: Arc<dyn WSLService>,
 ) -> tokio::task::JoinHandle<()> {
@@ -49,8 +49,8 @@ async fn run_wsl_worker(
 }
 
 async fn process_cmd(wsl: &Arc<dyn WSLService>, evt_tx: &Sender<WorkerEvent>, cmd: WorkerCmd) {
-    if let WorkerCmd::RunCustomAction { distro, action_name, command } = cmd {
-        process_custom_action(wsl, evt_tx, distro, action_name, command).await;
+    if let WorkerCmd::RunCustomAction { distro, action_name, command, input_rx } = cmd {
+        process_custom_action(wsl, evt_tx, distro, action_name, command, input_rx).await;
         return;
     }
     let evt = match cmd {
@@ -146,17 +146,24 @@ async fn process_custom_action(
     distro: String,
     action_name: String,
     command: String,
+    input_rx: Receiver<String>,
 ) {
     let (line_tx, mut line_rx) = tokio::sync::mpsc::channel::<String>(128);
-    let op = wsl.run_custom_action(&distro, &command, line_tx);
+    let op = wsl.run_custom_action(&distro, &command, line_tx, input_rx);
     tokio::pin!(op);
 
+    let mut output_open = true;
     let result = loop {
         tokio::select! {
-            line = line_rx.recv() => {
-                if let Some(line) = line {
-                    if evt_tx.send(WorkerEvent::CustomActionOutput { line }).await.is_err() {
-                        return;
+            chunk = line_rx.recv(), if output_open => {
+                match chunk {
+                    Some(chunk) => {
+                        if evt_tx.send(WorkerEvent::CustomActionOutput { chunk }).await.is_err() {
+                            return;
+                        }
+                    }
+                    None => {
+                        output_open = false;
                     }
                 }
             }
@@ -166,9 +173,9 @@ async fn process_custom_action(
         }
     };
 
-    while let Ok(line) = line_rx.try_recv() {
+    while let Ok(chunk) = line_rx.try_recv() {
         if evt_tx
-            .send(WorkerEvent::CustomActionOutput { line })
+            .send(WorkerEvent::CustomActionOutput { chunk })
             .await
             .is_err() {
             return;

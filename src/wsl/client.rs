@@ -1,9 +1,9 @@
 use std::path::Path;
 use std::process::{Output, Stdio};
 use std::time::Duration;
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
 use tokio::process::Command;
-use tokio::sync::mpsc::Sender;
+use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::time::timeout;
 use crate::config;
 use super::parser::parse_wsl_output;
@@ -123,44 +123,33 @@ impl WslProcess {
         Ok(())
     }
 
-    pub async fn run_custom_action(&self, distro: &str, command: &str, output_tx: Sender<String>) -> Result<(), WSLError> {
+    pub async fn run_custom_action(&self, distro: &str, command: &str, output_tx: Sender<String>, mut input_rx: Receiver<String>) -> Result<(), WSLError> {
         let distros = self.get_distros().await?;
         distro_exists(distro, &distros)?;
 
         let mut child = Command::new("wsl.exe")
-            .args(["--distribution", distro, "--", "sh", "-lc", command])
+            .args(["--distribution", distro, "--", "script", "-qfec", command, "/dev/null"])
+            .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()?;
 
+        let stdin = child.stdin.take();
         let stdout = child.stdout.take();
         let stderr = child.stderr.take();
 
-        let stdout_task = stdout.map(|stdout| {
-            let tx = output_tx.clone();
+        let stdin_task = stdin.map(|mut stdin| {
             tokio::spawn(async move {
-                let mut lines = BufReader::new(stdout).lines();
-                while let Some(line) = lines.next_line().await? {
-                    if tx.send(line).await.is_err() {
-                        break;
-                    }
+                while let Some(input) = input_rx.recv().await {
+                    stdin.write_all(input.as_bytes()).await?;
+                    stdin.flush().await?;
                 }
                 Ok::<(), std::io::Error>(())
             })
         });
 
-        let stderr_task = stderr.map(|stderr| {
-            let tx = output_tx;
-            tokio::spawn(async move {
-                let mut lines = BufReader::new(stderr).lines();
-                while let Some(line) = lines.next_line().await? {
-                    if tx.send(format!("stderr: {line}")).await.is_err() {
-                        break;
-                    }
-                }
-                Ok::<(), std::io::Error>(())
-            })
-        });
+        let stdout_task = stdout.map(|stdout| stream_output(stdout, output_tx.clone(), None));
+        let stderr_task = stderr.map(|stderr| stream_output(stderr, output_tx, Some("stderr: ")));
 
         let status = child.wait().await?;
 
@@ -172,9 +161,43 @@ impl WslProcess {
             let _ = task.await;
         }
 
+        if let Some(task) = stdin_task {
+            task.abort();
+        }
+
         if !status.success() {
             return Err(WSLError::CommandFailed(std::io::Error::other(format!("Custom action exited with {status}"))));
         }
         Ok(())
     }
+}
+
+fn stream_output<R> (
+    mut reader: R,
+    tx: Sender<String>,
+    prefix: Option<&'static str>,
+) -> tokio::task::JoinHandle<Result<(), std::io::Error>>
+where
+    R: AsyncRead + Unpin + Send + 'static,
+{
+    tokio::spawn(async move {
+        let mut buffer = [0_u8; 1024];
+        loop {
+            let n = reader.read(&mut buffer).await?;
+            if n == 0 {
+                break;
+            }
+
+            let chunk = String::from_utf8_lossy(&buffer[..n]).to_string();
+            let chunk = match prefix {
+                Some(prefix) => format!("{prefix}{chunk}"),
+                None => chunk
+            };
+
+            if tx.send(chunk).await.is_err() {
+                break;
+            }
+        }
+        Ok(())
+    })
 }

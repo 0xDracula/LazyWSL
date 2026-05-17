@@ -1,5 +1,6 @@
 use std::path::PathBuf;
-use crate::core::{ Distribution, WSLError };
+use tokio::sync::mpsc::Receiver;
+use crate::core::{Distribution, WSLError };
 
 pub enum WorkerCmd {
     Refresh,
@@ -11,7 +12,7 @@ pub enum WorkerCmd {
     OpenShell(String),
     Export { distro: String, output: PathBuf },
     Import { name: String, tar_path: PathBuf, install_path: PathBuf },
-    RunCustomAction { distro: String, action_name: String, command: String },
+    RunCustomAction { distro: String, action_name: String, command: String, input_rx: Receiver<String> },
 }
 
 #[derive(Debug)]
@@ -23,6 +24,6 @@ pub enum WorkerEvent {
     ListOnly {
         distributions: Result<Vec<Distribution>, WSLError>,
     },
-    CustomActionOutput { line:String },
+    CustomActionOutput { chunk: String },
     CustomActionFinished { distributions: Result<Vec<Distribution>, WSLError>, status_line: String },
 }

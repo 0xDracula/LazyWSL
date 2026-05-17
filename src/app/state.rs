@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use ratatui_explorer::FileExplorer;
+use tokio::sync::mpsc::Sender;
 use crate::config::CustomActions;
 use crate::wsl::Distribution;
 
@@ -22,7 +23,7 @@ pub enum Modal {
     ImportInstallPicker { tar_path: PathBuf, explorer: FileExplorer },
     ImportNameInput { tar_path: PathBuf, install_dir: PathBuf, input: String },
     CustomActionsMenu { distro: String, actions: Vec<CustomActions>, selected: usize },
-    ActionOuptut { distro: String, action_name: String, lines: Vec<String>, finished: bool },
+    ActionOuptut { distro: String, action_name: String, output: String, finished: bool, input: String, input_tx: Sender<String> },
 }
 
 impl Default for AppState {

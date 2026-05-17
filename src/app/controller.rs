@@ -88,9 +88,9 @@ fn apply_worker_event(state: &mut AppState, ev: WorkerEvent) {
             if let Ok(v) = distributions { state.distributions = v; }
             state.clamp_selection()
         }
-        WorkerEvent::CustomActionOutput { line } => {
-            if let Modal::ActionOuptut { lines, .. } = &mut state.modal {
-                lines.push(line);
+        WorkerEvent::CustomActionOutput { chunk } => {
+            if let Modal::ActionOuptut { output, .. } = &mut state.modal {
+                output.push_str(&chunk);
             }
         }
         WorkerEvent::CustomActionFinished { distributions, status_line } => {
@@ -100,9 +100,10 @@ fn apply_worker_event(state: &mut AppState, ev: WorkerEvent) {
                 state.distributions = v;
             }
             state.clamp_selection();
-            if let Modal::ActionOuptut { lines, finished, .. } = &mut state.modal {
-                lines.push(String::new());
-                lines.push(status_line);
+            if let Modal::ActionOuptut { output, finished, .. } = &mut state.modal {
+                output.push('\n');
+                output.push_str(&status_line);
+                output.push('\n');
                 *finished = true;
             }
         }
@@ -122,11 +123,10 @@ async fn handle_event(state: &mut AppState, cmd_tx: &mpsc::Sender<WorkerCmd>, ev
     match ev {
         Event::Key(key) => {
             if key.kind == KeyEventKind::Release { return ControlFlow::Continue(()); }
-            if state.busy { return ControlFlow::Continue(()); }
             if !matches!(state.modal, Modal::None) {
                 return handle_modal_key(state, cmd_tx, key.code).await;
             }
-
+            if state.busy { return ControlFlow::Continue(()); }
             let action = map_key(key.code);
             if let Some(cmd) = reduce(state, action) {
                 dispatch(state, cmd_tx, cmd).await;
@@ -306,17 +306,22 @@ async fn handle_modal_key(state: &mut AppState, cmd_tx: &mpsc::Sender<WorkerCmd>
                         let action_name = action.name.clone();
                         let command = action.command.clone();
 
+                        let (input_tx, input_rx) = mpsc::channel::<String>(32);
+
                         state.modal = Modal::ActionOuptut {
                             distro: distro.clone(),
                             action_name: action_name.clone(),
-                            lines: vec![format!("$ {command}")],
+                            output: format!("$ {command}\n"),
+                            input: String::new(),
+                            input_tx,
                             finished: false,
                         };
 
                         dispatch(state, cmd_tx, WorkerCmd::RunCustomAction {
                             distro,
                             action_name,
-                            command
+                            command,
+                            input_rx
                         }).await;
                     }
                     ControlFlow::Continue(())
@@ -328,19 +333,54 @@ async fn handle_modal_key(state: &mut AppState, cmd_tx: &mpsc::Sender<WorkerCmd>
             }
         }
 
-        Modal::ActionOuptut { distro, action_name, lines, finished } => match code {
-            KeyCode::Esc | KeyCode::Char('q') if finished => {
-                state.modal = Modal::None;
-                ControlFlow::Continue(())
+        Modal::ActionOuptut { distro, action_name, mut output, finished, mut input, input_tx } => {
+            let accepts_input = !finished;
+            match code {
+                KeyCode::Esc | KeyCode::Char('q') if finished => {
+                    state.modal = Modal::None;
+                    ControlFlow::Continue(())
+                }
+
+                KeyCode::Char(c) if accepts_input => {
+                    input.push(c);
+                    state.modal = Modal::ActionOuptut {
+                        distro, action_name, output, input_tx, input, finished
+                    };
+                    ControlFlow::Continue(())
+                }
+
+                KeyCode::Backspace if accepts_input => {
+                    input.pop();
+                    state.modal = Modal::ActionOuptut {
+                        distro, action_name, input_tx, input, output, finished
+                    };
+
+                    ControlFlow::Continue(())
+                }
+
+                KeyCode::Enter if accepts_input => {
+                    let submitted = format!("{input}\n");
+                    let _ = input_tx.try_send(submitted);
+                    output.push_str(&format!("\n> {}\n", "*".repeat(input.chars().count())));
+                    state.modal = Modal::ActionOuptut {
+                        distro, output, input: String::new(), input_tx, finished, action_name
+                    };
+                    ControlFlow::Continue(())
+                }
+
+                _ => {
+                    if !accepts_input {
+                        input.clear();
+                    }
+
+                    state.modal = Modal::ActionOuptut {
+                        distro, action_name, output, finished, input, input_tx
+                    };
+
+                    ControlFlow::Continue(())
+                }
             }
 
-            _ => {
-                state.modal = Modal::ActionOuptut {
-                    distro, action_name, lines, finished
-                };
-
-                ControlFlow::Continue(())
-            }
         }
 
         Modal::None => ControlFlow::Continue(())

@@ -69,10 +69,11 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
             frame.render_widget_ref(explorer.widget(), popup);
         }
 
-        Modal::ActionOuptut { distro, action_name, lines, finished } => {
+        Modal::ActionOuptut { distro, action_name, output, finished, input, .. } => {
             let popup = centered_rect(85, 75, frame.area());
             let visible_lines = popup.height.saturating_sub(4) as usize;
-            let start = lines.len().saturating_sub(visible_lines);
+            let output_parts: Vec<&str> = output.lines().collect();
+            let start = output_parts.len().saturating_sub(visible_lines);
             let mut output_lines = vec![
                 Line::from(vec![
                     Span::styled("Distro: ", Style::default().fg(Color::DarkGray).add_modifier(Modifier::BOLD)),
@@ -85,10 +86,22 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
             ];
 
             output_lines.extend(
-                lines[start..].iter().map(|line| Line::from(Span::raw(line.clone()))),
+                output_parts[start..].iter().map(|line| Line::from(Span::raw((*line).to_string()))),
             );
 
+            if !output.ends_with('\n') && !output.is_empty() && output_parts.is_empty() {
+                output_lines.push(Line::from(Span::raw(output.clone())));
+            }
+
             output_lines.push(Line::from(""));
+
+            if !*finished {
+                output_lines.push(Line::from(vec![
+                    Span::styled("Input: ", Style::default().fg(Color::DarkGray)),
+                    Span::styled("*".repeat(input.chars().count()), Style::default().fg(Color::Cyan))
+                ]));
+            }
+
             output_lines.push(Line::from(Span::styled(
                 if *finished {
                     "Finished - Press ESC or q to close"
