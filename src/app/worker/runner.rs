@@ -5,6 +5,7 @@ use tokio::time::{ self, MissedTickBehavior };
 use crate::wsl::WSLService;
 use crate::app::worker::commands::{ WorkerCmd, WorkerEvent };
 use crate::config;
+use crate::core::WSLError;
 
 pub fn spawn_wsl_worker(
     cmd_rx: Receiver<WorkerCmd>,
@@ -16,6 +17,19 @@ pub fn spawn_wsl_worker(
     })
 }
 
+fn friendly_status(context: &str, err: &WSLError) -> String {
+    match err {
+        WSLError::NotInstalled => {
+            "WSL isn't installed, run `wsl --install`, reboot, then install a distro from Microsoft store".to_string()
+        }
+        WSLError::NoDistros => {
+            "No distros found, install a distro from microsoft store ".to_string()
+        }
+        _ => {
+            format!("{context}: {err}")
+        }
+    }
+}
 
 async fn run_wsl_worker(
     mut cmd_rx: tokio::sync::mpsc::Receiver<WorkerCmd>,
@@ -58,7 +72,7 @@ async fn process_cmd(wsl: &Arc<dyn WSLService>, evt_tx: &Sender<WorkerEvent>, cm
             let distributions = wsl.list().await;
             let status_line = match &distributions {
                 Ok(v) => format!("Loaded {} distro(s).", v.len()),
-                Err(e) => format!("Refresh failed: {e}"),
+                Err(e) => friendly_status("Refresh failed", e),
             };
             WorkerEvent::DistroUpdated { distributions, status_line }
         }
@@ -67,7 +81,7 @@ async fn process_cmd(wsl: &Arc<dyn WSLService>, evt_tx: &Sender<WorkerEvent>, cm
             let distributions = wsl.list().await;
             let status_line = match op {
                 Ok(()) => format!("Ran distro `{name}`."),
-                Err(e) => format!("Run distro failed {e}."),
+                Err(e) => friendly_status("Run distro failed.", &e)
             };
             WorkerEvent::DistroUpdated { distributions, status_line }
         }
@@ -76,7 +90,7 @@ async fn process_cmd(wsl: &Arc<dyn WSLService>, evt_tx: &Sender<WorkerEvent>, cm
             let distributions = wsl.list().await;
             let status_line = match op {
                 Ok(()) => format!("Terminated `{name}`."),
-                Err(e) => format!("Terminate Failed {e}"),
+                Err(e) => friendly_status("Terminate Failed", &e),
             };
             WorkerEvent::DistroUpdated { distributions, status_line }
         }
@@ -85,7 +99,7 @@ async fn process_cmd(wsl: &Arc<dyn WSLService>, evt_tx: &Sender<WorkerEvent>, cm
             let distributions = wsl.list().await;
             let status_line = match op {
                 Ok(()) => format!("Unregistered `{name}`."),
-                Err(e) => format!("Failed to Unregister: {e}"),
+                Err(e) => friendly_status("Failed to Unregister", &e),
             };
             WorkerEvent::DistroUpdated { distributions, status_line }
         }
@@ -94,7 +108,7 @@ async fn process_cmd(wsl: &Arc<dyn WSLService>, evt_tx: &Sender<WorkerEvent>, cm
             let distributions = wsl.list().await;
             let status_line = match op {
                 Ok(()) => format!("`{name}` Set Default Successfully."),
-                Err(e) => format!("Failed to Set Default: {e}"),
+                Err(e) => friendly_status("Failed to Set Default", &e),
             };
             WorkerEvent::DistroUpdated { distributions, status_line }
         }
@@ -103,7 +117,7 @@ async fn process_cmd(wsl: &Arc<dyn WSLService>, evt_tx: &Sender<WorkerEvent>, cm
             let distributions = wsl.list().await;
             let status_line = match op {
                 Ok(()) => "Shutdown Succesful".to_string(),
-                Err(e) => format!("Shutdown failed: {e}"),
+                Err(e) => friendly_status("Shutdown failed", &e),
             };
             WorkerEvent::DistroUpdated { distributions, status_line }
         }
@@ -112,7 +126,7 @@ async fn process_cmd(wsl: &Arc<dyn WSLService>, evt_tx: &Sender<WorkerEvent>, cm
             let distributions = wsl.list().await;
             let status_line = match op {
                 Ok(()) => format!("Opened shell for `{name}`"),
-                Err(e) => format!("Open Shell Failed: {e}"),
+                Err(e) => friendly_status("Open Shell Failed", &e),
             };
             WorkerEvent::DistroUpdated { distributions, status_line }
         }
@@ -121,7 +135,7 @@ async fn process_cmd(wsl: &Arc<dyn WSLService>, evt_tx: &Sender<WorkerEvent>, cm
             let distributions = wsl.list().await;
             let status_line = match op {
                 Ok(()) => format!("Imported `{name}`"),
-                Err(e) => format!("Import failed {e}"),
+                Err(e) => friendly_status("Import failed", &e),
             };
             WorkerEvent::DistroUpdated { distributions, status_line }
         }
@@ -130,7 +144,7 @@ async fn process_cmd(wsl: &Arc<dyn WSLService>, evt_tx: &Sender<WorkerEvent>, cm
             let distributions = wsl.list().await;
             let status_line = match op {
                 Ok(()) => format!("Exported {distro}"),
-                Err(e) => format!("Export Failed: {e}"),
+                Err(e) => friendly_status("Export Failed", &e),
             };
             WorkerEvent::DistroUpdated { distributions, status_line }
         }
@@ -185,7 +199,7 @@ async fn process_custom_action(
     let distributions = wsl.list().await;
     let status_line = match result {
         Ok(()) => format!("Run {action_name} on {distro}"),
-        Err(e) => format!("Custom action {action_name} failed: {e}")
+        Err(e) => friendly_status(&format!("Custom action {action_name} failed"), &e)
     };
 
     let _ = evt_tx

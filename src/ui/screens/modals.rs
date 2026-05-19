@@ -142,9 +142,9 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
 
                 lines.push(Line::from(vec![
                     Span::styled(format!("{marker}"), style),
-                    Span::styled(action.name.clone(), style),
+                    Span::styled(format!("{:<16}", action.name.clone()), style),
                     Span::styled(" ", style),
-                    Span::styled(action.command.clone(), Style::default().fg(Color::DarkGray)),
+                    Span::styled(format!("{:<16}", action.command.clone()), Style::default().fg(Color::DarkGray)),
                 ]));
             }
 
