@@ -160,5 +160,6 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
             frame.render_widget(Clear, popup);
             frame.render_widget(para, popup);
         }
+        
     }
 }

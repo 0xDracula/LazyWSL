@@ -126,6 +126,9 @@ async fn handle_event(state: &mut AppState, cmd_tx: &mpsc::Sender<WorkerCmd>, ev
             if !matches!(state.modal, Modal::None) {
                 return handle_modal_key(state, cmd_tx, key.code).await;
             }
+            if state.search_active {
+                return handle_search_key(state, key.code);
+            }
             if state.busy { return ControlFlow::Continue(()); }
             let action = map_key(key.code);
             if let Some(cmd) = reduce(state, action) {
@@ -137,6 +140,31 @@ async fn handle_event(state: &mut AppState, cmd_tx: &mpsc::Sender<WorkerCmd>, ev
         }
         _ => ControlFlow::Continue(()),
     }
+}
+
+fn handle_search_key(state: &mut AppState, code: KeyCode) -> ControlFlow<()> {
+    match code {
+        KeyCode::Esc | KeyCode::Enter => {
+            state.search_active = false;
+            state.status_line = if state.search_query.is_empty() {
+                "Search Cleared".to_string()
+            } else {
+                format!("Search: {}", state.search_query)
+            };
+        }
+        KeyCode::Backspace => {
+            state.search_query.pop();
+        }
+        KeyCode::Char(c) => {
+            state.search_query.push(c);
+        }
+        KeyCode::Up => state.move_selection(-1),
+        KeyCode::Down => state.move_selection(1),
+        _ => { }
+    }
+    state.selected = 0;
+    state.clamp_selection();
+    ControlFlow::Continue(())
 }
 
 async fn handle_modal_key(state: &mut AppState, cmd_tx: &mpsc::Sender<WorkerCmd>, code: KeyCode) -> ControlFlow<()> {
@@ -383,6 +411,7 @@ async fn handle_modal_key(state: &mut AppState, cmd_tx: &mpsc::Sender<WorkerCmd>
 
         }
 
+        
         Modal::None => ControlFlow::Continue(())
     }
 }

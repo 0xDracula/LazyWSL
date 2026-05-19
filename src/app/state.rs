@@ -11,6 +11,8 @@ pub struct AppState {
     pub busy: bool,
     pub modal: Modal,
     pub should_quit: bool,
+    pub search_query: String,
+    pub search_active: bool,
 }
 
 pub enum Modal {
@@ -35,31 +37,50 @@ impl Default for AppState {
             busy: false,
             modal: Modal::None,
             should_quit: false,
+            search_active: false,
+            search_query: String::new(),
         }
     }
 }
 
 impl AppState {
     pub fn clamp_selection(&mut self) {
-        if self.distributions.is_empty() {
+        let len = self.filtered_indices().len();
+
+        if len == 0 {
             self.selected = 0;
         } else {
-            self.selected = self.selected.min(self.distributions.len() - 1);
+            self.selected = self.selected.min(len - 1);
         }
     }
 
     pub fn move_selection(&mut self, delta: isize) {
-        if self.distributions.is_empty() {
+        let len = self.filtered_indices().len();
+
+        if len == 0 {
             return;
         }
 
-        let len = self.distributions.len();
         let i = self.selected as isize + delta;
         let i = i.clamp(0, (len - 1) as isize) as usize;
         self.selected = i;
     }
 
     pub fn selected_distro(&self) -> Option<&Distribution> {
-        self.distributions.get(self.selected)
+        let indices = self.filtered_indices();
+        let idx = indices.get(self.selected)?;
+        self.distributions.get(*idx)
+    }
+
+    pub fn filtered_indices(&self) -> Vec<usize> {
+        let query = self.search_query.trim().to_lowercase();
+        self.distributions
+            .iter()
+            .enumerate()
+            .filter(|(_, d)| {
+                query.is_empty() | d.name.to_lowercase().contains(&query)
+            })
+            .map(|(i, _)| i)
+            .collect()
     }
 }

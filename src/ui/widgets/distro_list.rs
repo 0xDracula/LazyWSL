@@ -6,10 +6,12 @@ use ratatui::widgets::{Block, BorderType, Borders, List, ListItem, ListState};
 use crate::app::AppState;
 
 pub fn render(frame: &mut Frame<'_>, state: &mut AppState, area: Rect) {
-    let items: Vec<ListItem> = state
-        .distributions
-        .iter()
-        .map(|d| {
+    let indices = state.filtered_indices();
+    let mut items: Vec<ListItem> = if indices.is_empty() {
+        vec![ListItem::new(Line::from("No distro matched the search"))]
+    } else {
+        indices.iter().map(|&i| {
+            let d = &state.distributions[i];
             let def = if d.is_default { "●" } else { "○" };
             let line = Line::from(vec![
                 Span::styled(format!("{def} "), Style::default().fg(Color::Yellow)),
@@ -17,23 +19,33 @@ pub fn render(frame: &mut Frame<'_>, state: &mut AppState, area: Rect) {
                 Span::styled(
                     format!("{:<12} ", d.state),
                     Style::default().fg(
-                        if d.state.to_string() == "Running" {
-                            Color::Green
-                        } else {
-                            Color::DarkGray
-                        }
+                        if d.state.to_string() == "Running" { Color::Green } else { Color::DarkGray }
                     ),
                 ),
                 Span::styled(format!("WSL {}", d.version), Style::default().fg(Color::Gray)),
             ]);
             ListItem::new(line)
-        })
-        .collect();
+        }).collect()
+    };
+
+    let search_label = if state.search_query.is_empty() {
+        "Search: / to start".to_string()
+    } else {
+        format!("Search: {}", state.search_query)
+    };
+
+    let cursor = if state.search_active { "▍" } else { "" };
+    let search_line = Line::from(vec![
+        Span::styled(search_label, Style::default().fg(Color::DarkGray)),
+        Span::styled(cursor, Style::default().fg(Color::Cyan)),
+    ]);
+
+    items.push(ListItem::new(search_line));
 
     let title = if state.busy {
-        "  LazyWSL - WSL distributions [busy...] "
+        format!("  LazyWSL - [search: {}] [busy...]  ", state.search_query)
     } else {
-        "  LazyWSL - WSL distributions "
+        format!("  LazyWSL - [search: {}]  ", state.search_query)
     };
 
     let list = List::new(items)
@@ -44,13 +56,12 @@ pub fn render(frame: &mut Frame<'_>, state: &mut AppState, area: Rect) {
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
                 .border_style(Style::default().fg(Color::Rgb(120, 180, 255))),
-
         )
         .highlight_style(Style::default().bg(Color::Rgb(40, 40, 50)).add_modifier(Modifier::BOLD))
         .highlight_symbol("▌ ");
 
     let mut list_state = ListState::default();
-    if !state.distributions.is_empty() {
+    if !indices.is_empty() {
         list_state.select(Some(state.selected));
     }
 

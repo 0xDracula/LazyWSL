@@ -15,6 +15,8 @@ pub enum AppAction {
     MoveSelection(isize),
     Ignore,
     CustomActionsPrompt,
+    SearchPrompt,
+    ClearSearch,
 }
 
 pub fn map_key(code: KeyCode) -> AppAction {
@@ -30,6 +32,8 @@ pub fn map_key(code: KeyCode) -> AppAction {
         KeyCode::Char('e') | KeyCode::Char('E') => AppAction::ExportPrompt,
         KeyCode::Char('i') | KeyCode::Char('I') => AppAction::ImportPrompt,
         KeyCode::Char('a') | KeyCode::Char('A') => AppAction::CustomActionsPrompt,
+        KeyCode::Char('/') => AppAction::SearchPrompt,
+        KeyCode::Char('c') | KeyCode::Char('C') => AppAction::ClearSearch,
         KeyCode::Down => AppAction::MoveSelection(1),
         KeyCode::Up => AppAction::MoveSelection(-1),
         _ => AppAction::Ignore,

@@ -96,6 +96,18 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Option<WorkerCmd> {
             }
             None
         }
+        AppAction::SearchPrompt => {
+            state.search_active = true;
+            None
+        }
+        AppAction::ClearSearch => {
+            state.search_query.clear();
+            state.selected = 0;
+            state.clamp_selection();
+            state.search_active = false;
+            state.status_line = "Search Cleared".to_string();
+            None
+        }
         AppAction::Ignore => None,
     }
 }
