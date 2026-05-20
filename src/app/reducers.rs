@@ -47,11 +47,7 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
         AppAction::Help => { state.modal = Modal::Help; vec![] }
         AppAction::MoveSelection(delta) => { state.move_selection(delta); vec![] }
         AppAction::RunSelected => {
-            let names: Vec<String> = if !state.selected_multi.is_empty() {
-                state.selected_multi.iter().cloned().collect()
-            } else {
-                state.selected_distro().map_or(vec![], |d| vec![d.name.clone()])
-            };
+            let names: Vec<String> = state.targeted_distros();
 
             if names.is_empty() {
                 return vec![]
@@ -61,11 +57,7 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
             vec![WorkerCmd::Batch(cmds)]
         },
         AppAction::OpenShell => {
-            let names: Vec<String> = if !state.selected_multi.is_empty() {
-                state.selected_multi.iter().cloned().collect()
-            } else {
-                state.selected_distro().map_or(vec![], |d| vec![d.name.clone()])
-            };
+            let names: Vec<String> = state.targeted_distros();
             if names.is_empty() {
                 return vec![]
             }
@@ -74,11 +66,7 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
             vec![WorkerCmd::Batch(cmds)]
         }
         AppAction::Terminate => {
-            let names: Vec<String> = if !state.selected_multi.is_empty() {
-                state.selected_multi.iter().cloned().collect()
-            } else {
-                state.selected_distro().map_or(vec![], |d| vec![d.name.clone()])
-            };
+            let names = state.targeted_distros();
             if names.is_empty() {
                 return vec![]
             }
@@ -92,11 +80,7 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
             name.map(|n| WorkerCmd::SetDefault(n)).into_iter().collect()
         },
         AppAction::UnregisterPrompt => {
-            let names: Vec<String> = if !state.selected_multi.is_empty() {
-                state.selected_multi.iter().cloned().collect()
-            } else {
-                state.selected_distro().map_or(vec![], |d| vec![d.name.clone()])
-            };
+            let names: Vec<String> = state.targeted_distros();
 
             if !names.is_empty() {
                 state.modal = Modal::ConfirmUnregister { names }
@@ -111,11 +95,7 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
             vec![]
         }
         AppAction::ExportPrompt => {
-            let names: Vec<String> = if !state.selected_multi.is_empty() {
-                state.selected_multi.iter().cloned().collect()
-            } else {
-                state.selected_distro().map_or(vec![], |d| vec![d.name.clone()])
-            };
+            let names: Vec<String> = state.targeted_distros();
 
             if !names.is_empty() {
                 let mut explorer = new_explorer();
@@ -161,11 +141,7 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
             vec![]
         }
         AppAction::TogglePin => {
-            let names: Vec<String> = if !state.selected_multi.is_empty() {
-                state.selected_multi.iter().cloned().collect()
-            } else {
-                state.selected_distro().map_or(vec![], |d| vec![d.name.clone()])
-            };
+            let names: Vec<String> = state.targeted_distros();
 
             for name in &names {
                 state.toggle_pin(&name);

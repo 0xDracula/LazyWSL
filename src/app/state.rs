@@ -101,6 +101,14 @@ impl AppState {
         pins
     }
 
+    pub fn targeted_distros(&self) -> Vec<String> {
+        if !self.selected_multi.is_empty() {
+            self.selected_multi.iter().cloned().collect()
+        } else {
+            self.selected_distro().map_or(vec![], |d| vec![d.name.clone()])
+        }
+    }
+
     pub fn toggle_pin(&mut self, name: &str) {
         if self.pinned.contains(name) {
             self.pinned.remove(name);
