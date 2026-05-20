@@ -26,9 +26,9 @@ struct PinsSer { pins: Vec<String> }
 pub enum Modal {
     None,
     Help,
-    ConfirmUnregister { name: String },
+    ConfirmUnregister { names: Vec<String> },
     ConfirmShutdown,
-    ExportPicker { distro: String, explorer: FileExplorer },
+    ExportPicker { distros: Vec<String>, explorer: FileExplorer },
     ImportTarPicker { explorer: FileExplorer },
     ImportInstallPicker { tar_path: PathBuf, explorer: FileExplorer },
     ImportNameInput { tar_path: PathBuf, install_dir: PathBuf, input: String },

@@ -41,37 +41,89 @@ fn tar_or_dirs(f: File) -> Option<File> {
     }
 }
 
-pub fn reduce(state: &mut AppState, action: AppAction) -> Option<WorkerCmd> {
+pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
     match action {
-        AppAction::Quit => { state.should_quit = true; None }
-        AppAction::Help => { state.modal = Modal::Help; None }
-        AppAction::MoveSelection(delta) => { state.move_selection(delta); None }
-        AppAction::RunSelected => state.selected_distro().map(|d| WorkerCmd::RunDistro(d.name.clone())),
-        AppAction::OpenShell => state.selected_distro().map(|d| WorkerCmd::OpenShell(d.name.clone())),
-        AppAction::Terminate => state.selected_distro().map(|d| WorkerCmd::Terminate(d.name.clone())),
-        AppAction::SetDefault => state.selected_distro().map(|d| WorkerCmd::SetDefault(d.name.clone())),
-        AppAction::UnregisterPrompt => {
-            if let Some(d) = state.selected_distro() {
-                state.modal = Modal::ConfirmUnregister { name: d.name.clone() };
+        AppAction::Quit => { state.should_quit = true; vec![] }
+        AppAction::Help => { state.modal = Modal::Help; vec![] }
+        AppAction::MoveSelection(delta) => { state.move_selection(delta); vec![] }
+        AppAction::RunSelected => {
+            let names: Vec<String> = if !state.selected_multi.is_empty() {
+                state.selected_multi.iter().cloned().collect()
+            } else {
+                state.selected_distro().map_or(vec![], |d| vec![d.name.clone()])
+            };
+
+            if names.is_empty() {
+                return vec![]
             }
-            None
+            state.clear_multi_select();
+            let cmds = names.into_iter().map(WorkerCmd::RunDistro).collect::<Vec<_>>();
+            vec![WorkerCmd::Batch(cmds)]
+        },
+        AppAction::OpenShell => {
+            let names: Vec<String> = if !state.selected_multi.is_empty() {
+                state.selected_multi.iter().cloned().collect()
+            } else {
+                state.selected_distro().map_or(vec![], |d| vec![d.name.clone()])
+            };
+            if names.is_empty() {
+                return vec![]
+            }
+            state.clear_multi_select();
+            let cmds = names.into_iter().map(WorkerCmd::OpenShell).collect::<Vec<_>>();
+            vec![WorkerCmd::Batch(cmds)]
+        }
+        AppAction::Terminate => {
+            let names: Vec<String> = if !state.selected_multi.is_empty() {
+                state.selected_multi.iter().cloned().collect()
+            } else {
+                state.selected_distro().map_or(vec![], |d| vec![d.name.clone()])
+            };
+            if names.is_empty() {
+                return vec![]
+            }
+            state.clear_multi_select();
+            let cmds = names.into_iter().map(WorkerCmd::Terminate).collect::<Vec<_>>();
+            vec![WorkerCmd::Batch(cmds)]
+        },
+        AppAction::SetDefault => {
+            let name = state.selected_distro().map(|d| d.name.clone());
+
+            name.map(|n| WorkerCmd::SetDefault(n)).into_iter().collect()
+        },
+        AppAction::UnregisterPrompt => {
+            let names: Vec<String> = if !state.selected_multi.is_empty() {
+                state.selected_multi.iter().cloned().collect()
+            } else {
+                state.selected_distro().map_or(vec![], |d| vec![d.name.clone()])
+            };
+
+            if !names.is_empty() {
+                state.modal = Modal::ConfirmUnregister { names }
+            }
+
+            vec![]
         }
         AppAction::ShutdownPrompt => {
             state.modal = Modal::ConfirmShutdown;
             state.status_line = "Shutdown stops all WSL2 VMs, press y to confirm!".to_string();
 
-            None
+            vec![]
         }
         AppAction::ExportPrompt => {
-            if let Some(d) = state.selected_distro() {
+            let names: Vec<String> = if !state.selected_multi.is_empty() {
+                state.selected_multi.iter().cloned().collect()
+            } else {
+                state.selected_distro().map_or(vec![], |d| vec![d.name.clone()])
+            };
+
+            if !names.is_empty() {
                 let mut explorer = new_explorer();
                 let _ = explorer.set_filter_map(only_dirs);
-                state.modal = Modal::ExportPicker {
-                    distro: d.name.clone(),
-                    explorer,
-                };
+                state.modal = Modal::ExportPicker { distros: names, explorer };
             }
-            None
+
+            vec![]
         }
         AppAction::ImportPrompt => {
             let mut explorer = new_explorer();
@@ -79,7 +131,7 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Option<WorkerCmd> {
             state.modal = Modal::ImportTarPicker {
                 explorer
             };
-            None
+            vec![]
         }
         AppAction::CustomActionsPrompt => {
             if let Some(distro) = state.selected_distro().map(|d| d.name.clone()) {
@@ -94,11 +146,11 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Option<WorkerCmd> {
                     }
                 }
             }
-            None
+            vec![]
         }
         AppAction::SearchPrompt => {
             state.search_active = true;
-            None
+            vec![]
         }
         AppAction::ClearSearch => {
             state.search_query.clear();
@@ -106,19 +158,33 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Option<WorkerCmd> {
             state.clamp_selection();
             state.search_active = false;
             state.status_line = "Search Cleared".to_string();
-            None
+            vec![]
         }
         AppAction::TogglePin => {
-            if let Some(d) = state.selected_distro().map(|d| d.name.clone()) {
-                state.toggle_pin(&d);
-                state.clamp_selection();
-                state.status_line = if state.pinned.contains(&d) {
+            let names: Vec<String> = if !state.selected_multi.is_empty() {
+                state.selected_multi.iter().cloned().collect()
+            } else {
+                state.selected_distro().map_or(vec![], |d| vec![d.name.clone()])
+            };
+
+            for name in &names {
+                state.toggle_pin(&name);
+            }
+
+            state.clear_multi_select();
+
+            state.clamp_selection();
+            if names.len() == 1 {
+                let d = &names[0];
+                state.status_line = if state.pinned.contains(d) {
                     format!("Pinned {}", d)
                 } else {
                     format!("Unpinned {}", d)
                 };
+            } else {
+                state.status_line = format!("Toggled pin for {} distros", names.len());
             }
-            None
+            vec![]
         }
         AppAction::ToggleMultiSelect => {
             if let Some(name) = state.selected_distro().map(|d| d.name.clone()) {
@@ -129,8 +195,8 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Option<WorkerCmd> {
                     format!("Unmarked: {}", name)
                 };
             }
-            None
+            vec![]
         }
-        AppAction::Ignore => None,
+        AppAction::Ignore => vec![],
     }
 }

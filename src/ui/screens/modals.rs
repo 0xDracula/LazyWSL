@@ -32,9 +32,13 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
         Modal::None => {}
         Modal::Help => render_help(frame),
 
-        Modal::ConfirmUnregister { name } => {
+        Modal::ConfirmUnregister { names } => {
             let pop = centered_rect(60, 25, frame.area());
-            let msg = format!("Unregister `{name}`?\n\nThis removes the distro and its files.");
+            let msg = if names.len() == 1 {
+                format!("Unregister `{}`?\n\nThis removes the distro and its files", names[0])
+            } else {
+                format!("Unregister {} distros?\n\nThis removes the distros and their files\n\nPress y to confirm, n to cancel.", names.len())
+            };
             let para = Paragraph::new(msg).block(Block::default().borders(Borders::ALL).title(" Confirm "));
             frame.render_widget(Clear, pop);
             frame.render_widget(para, pop);
@@ -42,7 +46,7 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
 
         Modal::ConfirmShutdown => {
             let pop = centered_rect(60, 25, frame.area());
-            let msg = "Shut down the entire WSL VMs?";
+            let msg = "Shut down the entire WSL VMs?\n\nPress y to confirm, n to cancel.";
             let para = Paragraph::new(msg).block(Block::default().borders(Borders::ALL).title(" Confirm "));
             frame.render_widget(Clear, pop);
             frame.render_widget(para, pop);
@@ -160,6 +164,6 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
             frame.render_widget(Clear, popup);
             frame.render_widget(para, popup);
         }
-        
+
     }
 }

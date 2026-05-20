@@ -13,6 +13,7 @@ pub enum WorkerCmd {
     Export { distro: String, output: PathBuf },
     Import { name: String, tar_path: PathBuf, install_path: PathBuf },
     RunCustomAction { distro: String, action_name: String, command: String, input_rx: Receiver<String> },
+    Batch(Vec<WorkerCmd>),
 }
 
 #[derive(Debug)]

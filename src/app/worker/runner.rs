@@ -62,96 +62,109 @@ async fn run_wsl_worker(
     }
 }
 
-async fn process_cmd(wsl: &Arc<dyn WSLService>, evt_tx: &Sender<WorkerEvent>, cmd: WorkerCmd) {
-    if let WorkerCmd::RunCustomAction { distro, action_name, command, input_rx } = cmd {
-        process_custom_action(wsl, evt_tx, distro, action_name, command, input_rx).await;
-        return;
-    }
-    let evt = match cmd {
-        WorkerCmd::Refresh => {
-            let distributions = wsl.list().await;
-            let status_line = match &distributions {
-                Ok(v) => format!("Loaded {} distro(s).", v.len()),
-                Err(e) => friendly_status("Refresh failed", e),
-            };
-            WorkerEvent::DistroUpdated { distributions, status_line }
+fn process_cmd<'a>(
+    wsl: &'a Arc<dyn WSLService>,
+    evt_tx: &'a Sender<WorkerEvent>,
+    cmd: WorkerCmd,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'a>> {
+    Box::pin(async move {
+        if let WorkerCmd::Batch(cmds) = cmd {
+            for c in cmds {
+                process_cmd(wsl, evt_tx, c).await;
+            }
+            return;
         }
-        WorkerCmd::RunDistro(name) => {
-            let op = wsl.run(&name).await;
-            let distributions = wsl.list().await;
-            let status_line = match op {
-                Ok(()) => format!("Ran distro `{name}`."),
-                Err(e) => friendly_status("Run distro failed.", &e)
-            };
-            WorkerEvent::DistroUpdated { distributions, status_line }
-        }
-        WorkerCmd::Terminate(name) => {
-            let op = wsl.terminate(&name).await;
-            let distributions = wsl.list().await;
-            let status_line = match op {
-                Ok(()) => format!("Terminated `{name}`."),
-                Err(e) => friendly_status("Terminate Failed", &e),
-            };
-            WorkerEvent::DistroUpdated { distributions, status_line }
-        }
-        WorkerCmd::Unregister(name) => {
-            let op = wsl.unregister(&name).await;
-            let distributions = wsl.list().await;
-            let status_line = match op {
-                Ok(()) => format!("Unregistered `{name}`."),
-                Err(e) => friendly_status("Failed to Unregister", &e),
-            };
-            WorkerEvent::DistroUpdated { distributions, status_line }
-        }
-        WorkerCmd::SetDefault(name) => {
-            let op = wsl.set_default(&name).await;
-            let distributions = wsl.list().await;
-            let status_line = match op {
-                Ok(()) => format!("`{name}` Set Default Successfully."),
-                Err(e) => friendly_status("Failed to Set Default", &e),
-            };
-            WorkerEvent::DistroUpdated { distributions, status_line }
-        }
-        WorkerCmd::Shutdown => {
-            let op = wsl.shutdown().await;
-            let distributions = wsl.list().await;
-            let status_line = match op {
-                Ok(()) => "Shutdown Succesful".to_string(),
-                Err(e) => friendly_status("Shutdown failed", &e),
-            };
-            WorkerEvent::DistroUpdated { distributions, status_line }
-        }
-        WorkerCmd::OpenShell(name) => {
-            let op = wsl.open_shell(&name).await;
-            let distributions = wsl.list().await;
-            let status_line = match op {
-                Ok(()) => format!("Opened shell for `{name}`"),
-                Err(e) => friendly_status("Open Shell Failed", &e),
-            };
-            WorkerEvent::DistroUpdated { distributions, status_line }
-        }
-        WorkerCmd::Import { name, tar_path, install_path } => {
-            let op = wsl.import(&name, &tar_path, &install_path).await;
-            let distributions = wsl.list().await;
-            let status_line = match op {
-                Ok(()) => format!("Imported `{name}`"),
-                Err(e) => friendly_status("Import failed", &e),
-            };
-            WorkerEvent::DistroUpdated { distributions, status_line }
-        }
-        WorkerCmd::Export { distro, output } => {
-            let op = wsl.export(&distro, &output).await;
-            let distributions = wsl.list().await;
-            let status_line = match op {
-                Ok(()) => format!("Exported {distro}"),
-                Err(e) => friendly_status("Export Failed", &e),
-            };
-            WorkerEvent::DistroUpdated { distributions, status_line }
-        }
-        WorkerCmd::RunCustomAction { .. } => unreachable!(),
-    };
 
-    let _ = evt_tx.send(evt).await;
+        if let WorkerCmd::RunCustomAction { distro, action_name, command, input_rx } = cmd {
+            process_custom_action(wsl, evt_tx, distro, action_name, command, input_rx).await;
+            return;
+        }
+        let evt = match cmd {
+            WorkerCmd::Refresh => {
+                let distributions = wsl.list().await;
+                let status_line = match &distributions {
+                    Ok(v) => format!("Loaded {} distro(s).", v.len()),
+                    Err(e) => friendly_status("Refresh failed", e),
+                };
+                WorkerEvent::DistroUpdated { distributions, status_line }
+            }
+            WorkerCmd::RunDistro(name) => {
+                let op = wsl.run(&name).await;
+                let distributions = wsl.list().await;
+                let status_line = match op {
+                    Ok(()) => format!("Ran distro `{name}`."),
+                    Err(e) => friendly_status("Run distro failed.", &e)
+                };
+                WorkerEvent::DistroUpdated { distributions, status_line }
+            }
+            WorkerCmd::Terminate(name) => {
+                let op = wsl.terminate(&name).await;
+                let distributions = wsl.list().await;
+                let status_line = match op {
+                    Ok(()) => format!("Terminated `{name}`."),
+                    Err(e) => friendly_status("Terminate Failed", &e),
+                };
+                WorkerEvent::DistroUpdated { distributions, status_line }
+            }
+            WorkerCmd::Unregister(name) => {
+                let op = wsl.unregister(&name).await;
+                let distributions = wsl.list().await;
+                let status_line = match op {
+                    Ok(()) => format!("Unregistered `{name}`."),
+                    Err(e) => friendly_status("Failed to Unregister", &e),
+                };
+                WorkerEvent::DistroUpdated { distributions, status_line }
+            }
+            WorkerCmd::SetDefault(name) => {
+                let op = wsl.set_default(&name).await;
+                let distributions = wsl.list().await;
+                let status_line = match op {
+                    Ok(()) => format!("`{name}` Set Default Successfully."),
+                    Err(e) => friendly_status("Failed to Set Default", &e),
+                };
+                WorkerEvent::DistroUpdated { distributions, status_line }
+            }
+            WorkerCmd::Shutdown => {
+                let op = wsl.shutdown().await;
+                let distributions = wsl.list().await;
+                let status_line = match op {
+                    Ok(()) => "Shutdown Succesful".to_string(),
+                    Err(e) => friendly_status("Shutdown failed", &e),
+                };
+                WorkerEvent::DistroUpdated { distributions, status_line }
+            }
+            WorkerCmd::OpenShell(name) => {
+                let op = wsl.open_shell(&name).await;
+                let distributions = wsl.list().await;
+                let status_line = match op {
+                    Ok(()) => format!("Opened shell for `{name}`"),
+                    Err(e) => friendly_status("Open Shell Failed", &e),
+                };
+                WorkerEvent::DistroUpdated { distributions, status_line }
+            }
+            WorkerCmd::Import { name, tar_path, install_path } => {
+                let op = wsl.import(&name, &tar_path, &install_path).await;
+                let distributions = wsl.list().await;
+                let status_line = match op {
+                    Ok(()) => format!("Imported `{name}`"),
+                    Err(e) => friendly_status("Import failed", &e),
+                };
+                WorkerEvent::DistroUpdated { distributions, status_line }
+            }
+            WorkerCmd::Export { distro, output } => {
+                let op = wsl.export(&distro, &output).await;
+                let distributions = wsl.list().await;
+                let status_line = match op {
+                    Ok(()) => format!("Exported {distro}"),
+                    Err(e) => friendly_status("Export Failed", &e),
+                };
+                WorkerEvent::DistroUpdated { distributions, status_line }
+            }
+            WorkerCmd::RunCustomAction { .. } | WorkerCmd::Batch(_) => unreachable!(),
+        };
+
+        let _ = evt_tx.send(evt).await;
+    })
 }
 
 async fn process_custom_action(

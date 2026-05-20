@@ -131,7 +131,8 @@ async fn handle_event(state: &mut AppState, cmd_tx: &mpsc::Sender<WorkerCmd>, ev
             }
             if state.busy { return ControlFlow::Continue(()); }
             let action = map_key(key.code);
-            if let Some(cmd) = reduce(state, action) {
+            let cmds = reduce(state, action);
+            for cmd in cmds {
                 dispatch(state, cmd_tx, cmd).await;
             }
 
@@ -179,9 +180,11 @@ async fn handle_modal_key(state: &mut AppState, cmd_tx: &mpsc::Sender<WorkerCmd>
             ControlFlow::Continue(())
         }
 
-        Modal::ConfirmUnregister { name } => match code {
+        Modal::ConfirmUnregister { names } => match code {
             KeyCode::Char('y') => {
-                dispatch(state, cmd_tx, WorkerCmd::Unregister(name)).await;
+                state.clear_multi_select();
+                let cmds = names.into_iter().map(WorkerCmd::Unregister).collect::<Vec<_>>();
+                dispatch(state, cmd_tx, WorkerCmd::Batch(cmds)).await;
                 ControlFlow::Continue(())
             }
             KeyCode::Char('n') => {
@@ -190,7 +193,7 @@ async fn handle_modal_key(state: &mut AppState, cmd_tx: &mpsc::Sender<WorkerCmd>
             }
             KeyCode::Char('q') => ControlFlow::Break(()),
             _ => {
-                state.modal = Modal::ConfirmUnregister { name };
+                state.modal = Modal::ConfirmUnregister { names };
                 ControlFlow::Continue(())
             }
         }
@@ -283,7 +286,7 @@ async fn handle_modal_key(state: &mut AppState, cmd_tx: &mpsc::Sender<WorkerCmd>
             }
         }
 
-        Modal::ExportPicker { distro, mut explorer } => {
+        Modal::ExportPicker { distros, mut explorer } => {
             match code {
                 KeyCode::Esc => {
                     state.modal = Modal::None;
@@ -297,15 +300,18 @@ async fn handle_modal_key(state: &mut AppState, cmd_tx: &mpsc::Sender<WorkerCmd>
                     } else {
                         path
                     };
-
-                    let output = export_dir.join(format!("{distro}.tar"));
-                    dispatch(state, cmd_tx, WorkerCmd::Export { distro, output }).await;
+                    state.clear_multi_select();
+                    let cmds = distros.into_iter().map(|distro| {
+                        let output = export_dir.join(format!("{distro}.tar"));
+                        WorkerCmd::Export { distro, output }
+                    }).collect::<Vec<_>>();
+                    dispatch(state, cmd_tx, WorkerCmd::Batch(cmds)).await;
                     ControlFlow::Continue(())
                 }
                 _ => {
                     let key_event = KeyEvent::new(code, KeyModifiers::NONE);
                     let _ = explorer.handle(&Event::Key(key_event));
-                    state.modal = Modal::ExportPicker { distro, explorer };
+                    state.modal = Modal::ExportPicker { distros, explorer };
                     ControlFlow::Continue(())
                 }
             }
@@ -411,7 +417,7 @@ async fn handle_modal_key(state: &mut AppState, cmd_tx: &mpsc::Sender<WorkerCmd>
 
         }
 
-        
+
         Modal::None => ControlFlow::Continue(())
     }
 }
