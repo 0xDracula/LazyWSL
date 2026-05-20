@@ -37,10 +37,27 @@ impl WslProcess {
         )))?.map_err(|_| WSLError::NotInstalled)?;
 
         if !output.status.success() {
-            return Err(WSLError::CommandFailed(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("wsl.exe exited with {}", output.status),
-            )));
+            let code = output.status.code().unwrap_or(-1);
+            let stderr_bytes = if output.stderr.is_empty() {
+                &output.stdout
+            } else {
+                &output.stderr
+            };
+
+            let utf16: Vec<u16> = stderr_bytes
+                .chunks_exact(2)
+                .map(|c| u16::from_le_bytes([c[0], c[1]]))
+                .collect();
+
+            let mut stderr = String::from_utf16_lossy(&utf16).trim().to_string();
+            if stderr.is_empty() || stderr.contains('\u{FFFD}') {
+                stderr = String::from_utf8_lossy(stderr_bytes).replace('\0', "").trim().to_string();
+            }
+
+            return Err(WSLError::ProcessFailed {
+                code,
+                stderr
+            })
         }
 
         Ok(output)

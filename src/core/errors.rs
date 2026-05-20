@@ -14,6 +14,8 @@ pub enum WSLError {
     #[error("Failed to run WSL command: {0}")]
     CommandFailed(#[from] std::io::Error),
 
+    #[error("WSL process failed with exit code (code): {stderr}")]
+    ProcessFailed { code: i32, stderr: String }
     // #[error("Failed to parse WSL output: {0}")]
     // ParseError(String),
 }

@@ -25,6 +25,14 @@ fn friendly_status(context: &str, err: &WSLError) -> String {
         WSLError::NoDistros => {
             "No distros found, install a distro from microsoft store ".to_string()
         }
+
+        WSLError::ProcessFailed { code, stderr } => {
+            if stderr.is_empty() {
+                format!{"{context}: Exit code {code}"}
+            } else {
+                format!("{context}: {stderr} (Code {code})")
+            }
+        }
         _ => {
             format!("{context}: {err}")
         }
