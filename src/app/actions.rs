@@ -18,6 +18,7 @@ pub enum AppAction {
     SearchPrompt,
     ClearSearch,
     TogglePin,
+    ToggleMultiSelect,
 }
 
 pub fn map_key(code: KeyCode) -> AppAction {
@@ -36,6 +37,7 @@ pub fn map_key(code: KeyCode) -> AppAction {
         KeyCode::Char('/') => AppAction::SearchPrompt,
         KeyCode::Char('c') | KeyCode::Char('C') => AppAction::ClearSearch,
         KeyCode::Char('p') | KeyCode::Char('P') => AppAction::TogglePin,
+        KeyCode::Char(' ') => AppAction::ToggleMultiSelect,
         KeyCode::Down => AppAction::MoveSelection(1),
         KeyCode::Up => AppAction::MoveSelection(-1),
         _ => AppAction::Ignore,

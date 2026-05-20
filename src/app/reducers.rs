@@ -120,6 +120,17 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Option<WorkerCmd> {
             }
             None
         }
+        AppAction::ToggleMultiSelect => {
+            if let Some(name) = state.selected_distro().map(|d| d.name.clone()) {
+                state.toggle_multi_select(&name);
+                state.status_line = if state.selected_multi.contains(&name) {
+                    format!("Marked: {}", name)
+                } else {
+                    format!("Unmarked: {}", name)
+                };
+            }
+            None
+        }
         AppAction::Ignore => None,
     }
 }

@@ -15,7 +15,10 @@ pub fn render(frame: &mut Frame<'_>, state: &mut AppState, area: Rect) {
             let is_pinned = state.pinned.contains(&d.name);
             let pin = if is_pinned { "★" } else { "" };
             let def = if d.is_default { "●" } else { "○" };
+            let is_marked = state.selected_multi.contains(&d.name);
+            let mark = if is_marked { "✔" } else { " " };
             let line = Line::from(vec![
+                Span::styled(format!("{mark} "), Style::default().fg(Color::Green)),
                 Span::styled(format!("{pin} "), Style::default().fg(Color::Yellow)),
                 Span::styled(format!("{def} "), Style::default().fg(Color::Yellow)),
                 Span::styled(format!("{:<16}", d.name), Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),

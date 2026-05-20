@@ -17,6 +17,7 @@ pub struct AppState {
     pub search_query: String,
     pub search_active: bool,
     pub pinned: HashSet<String>,
+    pub selected_multi: HashSet<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -47,6 +48,7 @@ impl Default for AppState {
             search_active: false,
             search_query: String::new(),
             pinned: crate::app::state::load_pins(),
+            selected_multi: HashSet::new(),
         }
     }
 }
@@ -106,6 +108,18 @@ impl AppState {
             self.pinned.insert(name.to_string());
         }
         save_pins(&self.pinned);
+    }
+
+    pub fn toggle_multi_select(&mut self, name: &str) {
+        if self.selected_multi.contains(name) {
+            self.selected_multi.remove(name);
+        } else {
+            self.selected_multi.insert(name.to_owned());
+        }
+    }
+
+    pub fn clear_multi_select(&mut self) {
+        self.selected_multi.clear();
     }
 }
 
