@@ -75,31 +75,29 @@ pub async fn run_tui() -> io::Result<()> {
 
 fn apply_worker_event(state: &mut AppState, ev: WorkerEvent) {
     match ev {
-        WorkerEvent::DistroUpdated {
+        WorkerEvent::StateRefresh {
             distributions,
             status_line,
         } => {
             state.busy = false;
-            state.status_line = status_line;
+            if let Some(msg) = status_line {
+                state.status_line = msg;
+            }
             if let Ok(v) = distributions { state.distributions = v; }
             state.clamp_selection();
         }
-        WorkerEvent::ListOnly { distributions } => {
-            if let Ok(v) = distributions { state.distributions = v; }
-            state.clamp_selection()
+        WorkerEvent::StatusUpdate(msg) => {
+            state.status_line = msg;
         }
         WorkerEvent::CustomActionOutput { chunk } => {
             if let Modal::ActionOuptut { output, .. } = &mut state.modal {
                 output.push_str(&chunk);
             }
         }
-        WorkerEvent::CustomActionFinished { distributions, status_line } => {
+        WorkerEvent::CustomActionFinished { status_line } => {
             state.busy = false;
             state.status_line = status_line.clone();
-            if let Ok(v) = distributions {
-                state.distributions = v;
-            }
-            state.clamp_selection();
+            
             if let Modal::ActionOuptut { output, finished, .. } = &mut state.modal {
                 output.push('\n');
                 output.push_str(&status_line);

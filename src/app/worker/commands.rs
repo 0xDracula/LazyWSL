@@ -18,13 +18,11 @@ pub enum WorkerCmd {
 
 #[derive(Debug)]
 pub enum WorkerEvent {
-    DistroUpdated {
+    StateRefresh {
         distributions: Result<Vec<Distribution>, WSLError>,
-        status_line: String,
+        status_line: Option<String>,
     },
-    ListOnly {
-        distributions: Result<Vec<Distribution>, WSLError>,
-    },
+    StatusUpdate(String),
     CustomActionOutput { chunk: String },
-    CustomActionFinished { distributions: Result<Vec<Distribution>, WSLError>, status_line: String },
+    CustomActionFinished { status_line: String },
 }
