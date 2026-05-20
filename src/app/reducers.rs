@@ -108,6 +108,18 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Option<WorkerCmd> {
             state.status_line = "Search Cleared".to_string();
             None
         }
+        AppAction::TogglePin => {
+            if let Some(d) = state.selected_distro().map(|d| d.name.clone()) {
+                state.toggle_pin(&d);
+                state.clamp_selection();
+                state.status_line = if state.pinned.contains(&d) {
+                    format!("Pinned {}", d)
+                } else {
+                    format!("Unpinned {}", d)
+                };
+            }
+            None
+        }
         AppAction::Ignore => None,
     }
 }

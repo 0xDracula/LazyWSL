@@ -17,6 +17,7 @@ pub enum AppAction {
     CustomActionsPrompt,
     SearchPrompt,
     ClearSearch,
+    TogglePin,
 }
 
 pub fn map_key(code: KeyCode) -> AppAction {
@@ -34,6 +35,7 @@ pub fn map_key(code: KeyCode) -> AppAction {
         KeyCode::Char('a') | KeyCode::Char('A') => AppAction::CustomActionsPrompt,
         KeyCode::Char('/') => AppAction::SearchPrompt,
         KeyCode::Char('c') | KeyCode::Char('C') => AppAction::ClearSearch,
+        KeyCode::Char('p') | KeyCode::Char('P') => AppAction::TogglePin,
         KeyCode::Down => AppAction::MoveSelection(1),
         KeyCode::Up => AppAction::MoveSelection(-1),
         _ => AppAction::Ignore,

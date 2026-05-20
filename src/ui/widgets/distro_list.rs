@@ -12,8 +12,11 @@ pub fn render(frame: &mut Frame<'_>, state: &mut AppState, area: Rect) {
     } else {
         indices.iter().map(|&i| {
             let d = &state.distributions[i];
+            let is_pinned = state.pinned.contains(&d.name);
+            let pin = if is_pinned { "★" } else { "" };
             let def = if d.is_default { "●" } else { "○" };
             let line = Line::from(vec![
+                Span::styled(format!("{pin} "), Style::default().fg(Color::Yellow)),
                 Span::styled(format!("{def} "), Style::default().fg(Color::Yellow)),
                 Span::styled(format!("{:<16}", d.name), Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
                 Span::styled(
