@@ -3,7 +3,7 @@
 A lazy way to manage your WSL distros, right from your terminal.
 Built with Rust, Ratatui, inspired by wsl-ui, LazyGit, and LazyDocker.
 
-## Features ✨ (under development)
+## Features ✨
 
 
 ### Functions
