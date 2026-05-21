@@ -33,7 +33,7 @@ pub enum Modal {
     ImportInstallPicker { tar_path: PathBuf, explorer: FileExplorer },
     ImportNameInput { tar_path: PathBuf, install_dir: PathBuf, input: String },
     CustomActionsMenu { distro: String, actions: Vec<CustomActions>, selected: usize },
-    ActionOuptut { distro: String, action_name: String, output: String, finished: bool, input: String, input_tx: Sender<String> },
+    ActionOutput { distro: String, action_name: String, output: String, finished: bool, input: String, input_tx: Sender<String> },
 }
 
 impl Default for AppState {

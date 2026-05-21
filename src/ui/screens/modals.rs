@@ -73,7 +73,7 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
             frame.render_widget_ref(explorer.widget(), popup);
         }
 
-        Modal::ActionOuptut { distro, action_name, output, finished, input, .. } => {
+        Modal::ActionOutput { distro, action_name, output, finished, input, .. } => {
             let popup = centered_rect(85, 75, frame.area());
             let visible_lines = popup.height.saturating_sub(4) as usize;
             let output_parts: Vec<&str> = output.lines().collect();
