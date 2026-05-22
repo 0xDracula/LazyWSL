@@ -1,11 +1,11 @@
+use crate::config::CustomActions;
+use crate::wsl::Distribution;
+use ratatui_explorer::FileExplorer;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
-use ratatui_explorer::FileExplorer;
-use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::Sender;
-use crate::config::CustomActions;
-use crate::wsl::Distribution;
 
 pub struct AppState {
     pub distributions: Vec<Distribution>,
@@ -21,19 +21,46 @@ pub struct AppState {
 }
 
 #[derive(Serialize, Deserialize)]
-struct PinsSer { pins: Vec<String> }
+struct PinsSer {
+    pins: Vec<String>,
+}
 
 pub enum Modal {
     None,
     Help,
-    ConfirmUnregister { names: Vec<String> },
+    ConfirmUnregister {
+        names: Vec<String>,
+    },
     ConfirmShutdown,
-    ExportPicker { distros: Vec<String>, explorer: FileExplorer },
-    ImportTarPicker { explorer: FileExplorer },
-    ImportInstallPicker { tar_path: PathBuf, explorer: FileExplorer },
-    ImportNameInput { tar_path: PathBuf, install_dir: PathBuf, input: String },
-    CustomActionsMenu { distro: String, actions: Vec<CustomActions>, selected: usize },
-    ActionOutput { distro: String, action_name: String, output: String, finished: bool, input: String, input_tx: Sender<String> },
+    ExportPicker {
+        distros: Vec<String>,
+        explorer: FileExplorer,
+    },
+    ImportTarPicker {
+        explorer: FileExplorer,
+    },
+    ImportInstallPicker {
+        tar_path: PathBuf,
+        explorer: FileExplorer,
+    },
+    ImportNameInput {
+        tar_path: PathBuf,
+        install_dir: PathBuf,
+        input: String,
+    },
+    CustomActionsMenu {
+        distro: String,
+        actions: Vec<CustomActions>,
+        selected: usize,
+    },
+    ActionOutput {
+        distro: String,
+        action_name: String,
+        output: String,
+        finished: bool,
+        input: String,
+        input_tx: Sender<String>,
+    },
 }
 
 impl Default for AppState {
@@ -105,7 +132,8 @@ impl AppState {
         if !self.selected_multi.is_empty() {
             self.selected_multi.iter().cloned().collect()
         } else {
-            self.selected_distro().map_or(vec![], |d| vec![d.name.clone()])
+            self.selected_distro()
+                .map_or(vec![], |d| vec![d.name.clone()])
         }
     }
 
@@ -141,18 +169,21 @@ fn pins_path() -> PathBuf {
 
 pub fn load_pins() -> HashSet<String> {
     let path = pins_path();
-    if let Ok(s) = fs::read_to_string(&path) {
-        if let Ok(data) = serde_json::from_str::<PinsSer>(&s) {
-            return data.pins.into_iter().collect();
-        }
+    if let Ok(s) = fs::read_to_string(&path)
+        && let Ok(data) = serde_json::from_str::<PinsSer>(&s)
+    {
+        return data.pins.into_iter().collect();
     }
     HashSet::new()
 }
 
 pub fn save_pins(pins: &HashSet<String>) {
     let path = pins_path();
-    let data = PinsSer { pins: pins.iter().cloned().collect() };
+    let data = PinsSer {
+        pins: pins.iter().cloned().collect(),
+    };
     if let Ok(s) = serde_json::to_string_pretty(&data) {
         let _ = fs::write(path, s);
     }
 }
+

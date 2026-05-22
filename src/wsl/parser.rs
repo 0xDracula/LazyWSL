@@ -1,9 +1,13 @@
+use crate::core::{Distribution, DistroState};
+use crate::wsl::WslVersion;
 use std::fs;
 use std::path::Path;
-use winreg::enums::HKEY_CURRENT_USER;
+
+#[cfg(windows)]
 use winreg::RegKey;
-use crate::wsl::WslVersion;
-use crate::core::{Distribution, DistroState};
+
+#[cfg(windows)]
+use winreg::enums::HKEY_CURRENT_USER;
 
 pub fn parse_wsl_output(decoded: &str) -> Vec<Distribution> {
     let mut distros = vec![];
@@ -21,7 +25,8 @@ pub fn parse_wsl_output(decoded: &str) -> Vec<Distribution> {
 
     let install_paths = get_distro_path().unwrap_or_default();
     for distro in &mut distros {
-        distro.install_path = install_paths.iter()
+        distro.install_path = install_paths
+            .iter()
             .find(|(name, _)| name == &distro.name)
             .map(|(_, path)| path.clone());
     }
@@ -35,6 +40,14 @@ pub fn parse_wsl_output(decoded: &str) -> Vec<Distribution> {
     distros
 }
 
+#[cfg(not(windows))]
+pub fn get_distro_path() -> std::io::Result<Vec<(String, String)>> {
+    println!("Windows Only Function");
+
+    Ok(vec![])
+}
+
+#[cfg(windows)]
 pub fn get_distro_path() -> std::io::Result<Vec<(String, String)>> {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     let lxss = hkcu.open_subkey("Software\\Microsoft\\Windows\\CurrentVersion\\Lxss")?;
@@ -54,7 +67,8 @@ pub fn get_distro_path() -> std::io::Result<Vec<(String, String)>> {
         };
         let install_path = install_path
             .strip_prefix(r"\\?\")
-            .unwrap_or(&install_path).to_string();
+            .unwrap_or(&install_path)
+            .to_string();
 
         result.push((name, install_path));
     }
@@ -70,12 +84,16 @@ pub fn get_distro_size(install_path: &String) -> Option<u64> {
 
 pub fn parse_line_distro(line: &str) -> Option<Distribution> {
     let trimmed = line.trim();
-    if trimmed.is_empty() { return None; }
+    if trimmed.is_empty() {
+        return None;
+    }
 
     let is_default = line.starts_with("*") || line.starts_with(" *");
     let normalized = line.replace("*", " ");
     let parts: Vec<&str> = normalized.split_whitespace().collect();
-    if parts.len() < 3 { return None; }
+    if parts.len() < 3 {
+        return None;
+    }
 
     let version_str = parts.last()?;
     let version_u8: u8 = version_str.parse().ok()?;
@@ -119,7 +137,10 @@ mod tests {
         assert_eq!(ubuntu.state, DistroState::Running);
         assert_eq!(ubuntu.version, WslVersion::V2);
 
-        let docker = list.iter().find(|d| d.name == "docker-desktop").expect("dd");
+        let docker = list
+            .iter()
+            .find(|d| d.name == "docker-desktop")
+            .expect("dd");
         assert!(!docker.is_default);
         assert_eq!(docker.state, DistroState::Stopped);
         assert_eq!(docker.version, WslVersion::V1);
@@ -128,3 +149,4 @@ mod tests {
         assert_eq!(test_distro.name, "Test Distro");
     }
 }
+

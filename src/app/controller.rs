@@ -1,22 +1,23 @@
-use std::io;
-use std::ops::ControlFlow;
-use crossterm::event::{Event, EventStream, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use crossterm::execute;
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
-use ratatui::backend::CrosstermBackend;
-use ratatui::Terminal;
-use ratatui_explorer::{FileExplorerBuilder};
-use tokio_stream::StreamExt;
-use tokio::sync::mpsc;
-use crate::app::{AppState, Modal};
 use crate::app::actions::map_key;
 use crate::app::components::modal::ModalComponent;
-use crate::app::reducers::{explorer_theme, reduce};
+use crate::app::reducers::reduce;
 use crate::app::worker::commands::{WorkerCmd, WorkerEvent};
 use crate::app::worker::runner::spawn_wsl_worker;
+use crate::app::{AppState, Modal};
 use crate::ui;
 use crate::ui::Component;
 use crate::wsl::WSLProcessService;
+use crossterm::event::{Event, EventStream, KeyCode, KeyEventKind};
+use crossterm::execute;
+use crossterm::terminal::{
+    EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
+};
+use ratatui::Terminal;
+use ratatui::backend::CrosstermBackend;
+use std::io;
+use std::ops::ControlFlow;
+use tokio::sync::mpsc;
+use tokio_stream::StreamExt;
 
 pub async fn run_tui() -> io::Result<()> {
     let (cmd_tx, cmd_rx) = mpsc::channel::<WorkerCmd>(32);
@@ -85,11 +86,10 @@ fn apply_worker_event(state: &mut AppState, ev: WorkerEvent) {
             if let Some(msg) = status_line {
                 state.status_line = msg;
             }
-            if let Ok(v) = distributions { state.distributions = v; }
+            if let Ok(v) = distributions {
+                state.distributions = v;
+            }
             state.clamp_selection();
-        }
-        WorkerEvent::StatusUpdate(msg) => {
-            state.status_line = msg;
         }
         WorkerEvent::CustomActionOutput { chunk } => {
             if let Modal::ActionOutput { output, .. } = &mut state.modal {
@@ -99,8 +99,11 @@ fn apply_worker_event(state: &mut AppState, ev: WorkerEvent) {
         WorkerEvent::CustomActionFinished { status_line } => {
             state.busy = false;
             state.status_line = status_line.clone();
-            
-            if let Modal::ActionOutput { output, finished, .. } = &mut state.modal {
+
+            if let Modal::ActionOutput {
+                output, finished, ..
+            } = &mut state.modal
+            {
                 output.push('\n');
                 output.push_str(&status_line);
                 output.push('\n');
@@ -119,26 +122,38 @@ pub async fn dispatch(state: &mut AppState, tx: &mpsc::Sender<WorkerCmd>, cmd: W
     }
 }
 
-async fn handle_event(state: &mut AppState, cmd_tx: &mpsc::Sender<WorkerCmd>, ev: Event) -> ControlFlow<()> {
+async fn handle_event(
+    state: &mut AppState,
+    cmd_tx: &mpsc::Sender<WorkerCmd>,
+    ev: Event,
+) -> ControlFlow<()> {
     let mut model_component = ModalComponent::new();
 
     match ev {
         Event::Key(key) => {
-            if key.kind == KeyEventKind::Release { return ControlFlow::Continue(()); }
+            if key.kind == KeyEventKind::Release {
+                return ControlFlow::Continue(());
+            }
             if !matches!(state.modal, Modal::None) {
-                return model_component.handle_event(state, cmd_tx, Event::Key(key)).await;
+                return model_component
+                    .handle_event(state, cmd_tx, Event::Key(key))
+                    .await;
             }
             if state.search_active {
                 return handle_search_key(state, key.code);
             }
-            if state.busy { return ControlFlow::Continue(()); }
+            if state.busy {
+                return ControlFlow::Continue(());
+            }
             let action = map_key(key.code);
             let cmds = reduce(state, action);
             for cmd in cmds {
                 dispatch(state, cmd_tx, cmd).await;
             }
 
-            if state.should_quit { return ControlFlow::Break(()); }
+            if state.should_quit {
+                return ControlFlow::Break(());
+            }
             ControlFlow::Continue(())
         }
         _ => ControlFlow::Continue(()),
@@ -163,9 +178,10 @@ fn handle_search_key(state: &mut AppState, code: KeyCode) -> ControlFlow<()> {
         }
         KeyCode::Up => state.move_selection(-1),
         KeyCode::Down => state.move_selection(1),
-        _ => { }
+        _ => {}
     }
     state.selected = 0;
     state.clamp_selection();
     ControlFlow::Continue(())
 }
+

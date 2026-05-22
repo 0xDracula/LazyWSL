@@ -1,10 +1,10 @@
+use crate::app::actions::AppAction;
+use crate::app::worker::commands::WorkerCmd;
+use crate::app::{AppState, Modal};
+use crate::config;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::{Block, Borders, HighlightSpacing};
-use ratatui_explorer::{FileExplorer, File, Theme, FileExplorerBuilder};
-use crate::app::actions::AppAction;
-use crate::app::{AppState, Modal};
-use crate::app::worker::commands::WorkerCmd;
-use crate::config;
+use ratatui_explorer::{File, FileExplorer, FileExplorerBuilder, Theme};
 
 pub fn explorer_theme() -> Theme {
     Theme::default()
@@ -12,8 +12,18 @@ pub fn explorer_theme() -> Theme {
         .with_style(Style::default().fg(Color::Gray))
         .with_dir_style(Style::default().fg(Color::Cyan))
         .with_item_style(Style::default().fg(Color::White))
-        .with_highlight_item_style(Style::default().fg(Color::Black).bg(Color::Magenta).add_modifier(Modifier::BOLD))
-        .with_highlight_dir_style(Style::default().fg(Color::Black).bg(Color::Blue).add_modifier(Modifier::BOLD))
+        .with_highlight_item_style(
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::Magenta)
+                .add_modifier(Modifier::BOLD),
+        )
+        .with_highlight_dir_style(
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::Blue)
+                .add_modifier(Modifier::BOLD),
+        )
         .with_scroll_padding(2)
         .with_highlight_symbol("▶ ")
         .with_highlight_spacing(HighlightSpacing::Always)
@@ -43,42 +53,60 @@ fn tar_or_dirs(f: File) -> Option<File> {
 
 pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
     match action {
-        AppAction::Quit => { state.should_quit = true; vec![] }
-        AppAction::Help => { state.modal = Modal::Help; vec![] }
-        AppAction::MoveSelection(delta) => { state.move_selection(delta); vec![] }
+        AppAction::Quit => {
+            state.should_quit = true;
+            vec![]
+        }
+        AppAction::Help => {
+            state.modal = Modal::Help;
+            vec![]
+        }
+        AppAction::MoveSelection(delta) => {
+            state.move_selection(delta);
+            vec![]
+        }
         AppAction::RunSelected => {
             let names: Vec<String> = state.targeted_distros();
 
             if names.is_empty() {
-                return vec![]
+                return vec![];
             }
             state.clear_multi_select();
-            let cmds = names.into_iter().map(WorkerCmd::RunDistro).collect::<Vec<_>>();
+            let cmds = names
+                .into_iter()
+                .map(WorkerCmd::RunDistro)
+                .collect::<Vec<_>>();
             vec![WorkerCmd::Batch(cmds)]
-        },
+        }
         AppAction::OpenShell => {
             let names: Vec<String> = state.targeted_distros();
             if names.is_empty() {
-                return vec![]
+                return vec![];
             }
             state.clear_multi_select();
-            let cmds = names.into_iter().map(WorkerCmd::OpenShell).collect::<Vec<_>>();
+            let cmds = names
+                .into_iter()
+                .map(WorkerCmd::OpenShell)
+                .collect::<Vec<_>>();
             vec![WorkerCmd::Batch(cmds)]
         }
         AppAction::Terminate => {
             let names = state.targeted_distros();
             if names.is_empty() {
-                return vec![]
+                return vec![];
             }
             state.clear_multi_select();
-            let cmds = names.into_iter().map(WorkerCmd::Terminate).collect::<Vec<_>>();
+            let cmds = names
+                .into_iter()
+                .map(WorkerCmd::Terminate)
+                .collect::<Vec<_>>();
             vec![WorkerCmd::Batch(cmds)]
-        },
+        }
         AppAction::SetDefault => {
             let name = state.selected_distro().map(|d| d.name.clone());
 
-            name.map(|n| WorkerCmd::SetDefault(n)).into_iter().collect()
-        },
+            name.map(WorkerCmd::SetDefault).into_iter().collect()
+        }
         AppAction::UnregisterPrompt => {
             let names: Vec<String> = state.targeted_distros();
 
@@ -100,7 +128,10 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
             if !names.is_empty() {
                 let mut explorer = new_explorer();
                 let _ = explorer.set_filter_map(only_dirs);
-                state.modal = Modal::ExportPicker { distros: names, explorer };
+                state.modal = Modal::ExportPicker {
+                    distros: names,
+                    explorer,
+                };
             }
 
             vec![]
@@ -108,16 +139,15 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
         AppAction::ImportPrompt => {
             let mut explorer = new_explorer();
             let _ = explorer.set_filter_map(tar_or_dirs);
-            state.modal = Modal::ImportTarPicker {
-                explorer
-            };
+            state.modal = Modal::ImportTarPicker { explorer };
             vec![]
         }
         AppAction::CustomActionsPrompt => {
             if let Some(distro) = state.selected_distro().map(|d| d.name.clone()) {
                 let actions = config::load_or_create().custom_actions;
                 if actions.is_empty() {
-                    state.status_line = "No custom actions configured in settings.json.".to_string();
+                    state.status_line =
+                        "No custom actions configured in settings.json.".to_string();
                 } else {
                     state.modal = Modal::CustomActionsMenu {
                         distro,
@@ -144,7 +174,7 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
             let names: Vec<String> = state.targeted_distros();
 
             for name in &names {
-                state.toggle_pin(&name);
+                state.toggle_pin(name);
             }
 
             state.clear_multi_select();
@@ -176,3 +206,4 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
         AppAction::Ignore => vec![],
     }
 }
+
