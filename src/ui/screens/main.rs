@@ -1,11 +1,11 @@
+use crate::app::AppState;
+use crate::core::DistroState;
+use crate::ui::widgets::{distro_list, status};
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout};
 use ratatui::prelude::Direction;
 use ratatui::style::{Color, Style};
 use ratatui::widgets::Paragraph;
-use crate::app::AppState;
-use crate::core::DistroState;
-use crate::ui::widgets::{distro_list, status};
 
 pub fn render_main(frame: &mut Frame<'_>, state: &mut AppState) {
     let area = frame.area();
@@ -21,10 +21,8 @@ pub fn render_main(frame: &mut Frame<'_>, state: &mut AppState) {
 
     let main_chunks = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(35),
-            Constraint::Percentage(65),
-        ]).split(chunks[0]);
+        .constraints([Constraint::Percentage(35), Constraint::Percentage(65)])
+        .split(chunks[0]);
 
     distro_list::render(frame, state, main_chunks[0]);
 

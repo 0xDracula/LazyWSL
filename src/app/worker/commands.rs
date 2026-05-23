@@ -41,4 +41,3 @@ pub enum WorkerEvent {
         status_line: String,
     },
 }
-

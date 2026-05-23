@@ -206,4 +206,3 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
         AppAction::Ignore => vec![],
     }
 }
-

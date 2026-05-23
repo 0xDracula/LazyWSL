@@ -1,8 +1,8 @@
-mod wsl;
 mod app;
-mod ui;
-mod core;
 mod config;
+mod core;
+mod ui;
+mod wsl;
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> std::io::Result<()> {

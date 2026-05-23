@@ -149,4 +149,3 @@ mod tests {
         assert_eq!(test_distro.name, "Test Distro");
     }
 }
-

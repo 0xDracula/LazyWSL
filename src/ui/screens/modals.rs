@@ -215,4 +215,3 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
         }
     }
 }
-

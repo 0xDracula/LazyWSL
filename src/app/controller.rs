@@ -184,4 +184,3 @@ fn handle_search_key(state: &mut AppState, code: KeyCode) -> ControlFlow<()> {
     state.clamp_selection();
     ControlFlow::Continue(())
 }
-

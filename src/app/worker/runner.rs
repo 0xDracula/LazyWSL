@@ -265,4 +265,3 @@ async fn process_custom_action(
         .send(WorkerEvent::CustomActionFinished { status_line })
         .await;
 }
-

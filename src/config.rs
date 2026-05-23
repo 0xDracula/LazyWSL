@@ -71,4 +71,3 @@ pub fn save(cfg: &AppConfig) -> std::io::Result<()> {
     let content = serde_json::to_string_pretty(cfg)?;
     fs::write(config_path(), content)
 }
-

@@ -1,6 +1,6 @@
+mod component;
 mod screens;
 mod widgets;
-mod component;
 
-pub use screens::render;
 pub use component::Component;
+pub use screens::render;

@@ -1,4 +1,4 @@
-use std::fmt::{ self, Formatter };
+use std::fmt::{self, Formatter};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Distribution {
@@ -23,7 +23,7 @@ pub enum DistroState {
 pub enum WslVersion {
     V1,
     V2,
-    Unknown(u8)
+    Unknown(u8),
 }
 
 impl From<&str> for DistroState {
