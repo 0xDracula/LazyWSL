@@ -5,6 +5,7 @@ use crate::app::{AppState, Modal};
 use crate::ui::Component;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui_explorer::FileExplorerBuilder;
+use ratatui_notifications::{Anchor, Level};
 use std::future::Future;
 use std::ops::ControlFlow;
 use std::pin::Pin;
@@ -59,7 +60,7 @@ impl ModalComponent {
                     ControlFlow::Continue(())
                 }
                 KeyCode::Char('n') => {
-                    state.status_line = "Cancelled".to_string();
+                    state.notify("Cancelled".to_string(), Level::Info, Anchor::TopRight, 2);
                     ControlFlow::Continue(())
                 }
                 KeyCode::Char('q') => ControlFlow::Break(()),
@@ -75,7 +76,7 @@ impl ModalComponent {
                     ControlFlow::Continue(())
                 }
                 KeyCode::Char('n') => {
-                    state.status_line = "Cancelled".to_string();
+                    state.notify("Cancelled".to_string(), Level::Info, Anchor::TopRight, 2);
                     ControlFlow::Continue(())
                 }
                 KeyCode::Char('q') => ControlFlow::Break(()),
@@ -190,7 +191,7 @@ impl ModalComponent {
             } => match code {
                 KeyCode::Esc => {
                     state.modal = Modal::None;
-                    state.status_line = "Cancelled".to_string();
+                    state.notify("Cancelled".to_string(), Level::Info, Anchor::TopRight, 2);
                     ControlFlow::Continue(())
                 }
                 KeyCode::Enter => {
@@ -355,7 +356,7 @@ impl ModalComponent {
                     KeyCode::Char('c') if finished => {
                         let mut clipboard = arboard::Clipboard::new().unwrap();
                         let _ = clipboard.set_text(&output);
-                        state.status_line = "Output copied to clipboard".to_string();
+                        state.notify("Output copied to clipboard".to_string(), Level::Info, Anchor::TopRight, 2);
                         state.modal = Modal::ActionOutput {
                             distro,
                             action_name,

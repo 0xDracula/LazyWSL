@@ -12,11 +12,7 @@ pub fn render_main(frame: &mut Frame<'_>, state: &mut AppState) {
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Min(4),
-            Constraint::Length(4),
-            Constraint::Length(1),
-        ])
+        .constraints([Constraint::Min(4), Constraint::Length(1)])
         .split(area);
 
     let main_chunks = Layout::default()
@@ -40,11 +36,10 @@ pub fn render_main(frame: &mut Frame<'_>, state: &mut AppState) {
     let details = status::details_widget(state, color);
     frame.render_widget(details, main_chunks[1]);
 
-    let status = status::status_widget(state);
-    frame.render_widget(status, chunks[1]);
-
     let help = Paragraph::new(
         "a actions | h help | r run distro | Enter shell | t terminate | d default | u unregister | s shutdown | q/Esc quit"
     ).style(Style::default().fg(Color::DarkGray));
-    frame.render_widget(help, chunks[2]);
+    frame.render_widget(help, chunks[1]);
+
+    state.notifications.render(frame, frame.area());
 }

@@ -14,6 +14,7 @@ use crossterm::terminal::{
 };
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
+use ratatui_notifications::{Anchor, Level};
 use std::io;
 use std::ops::ControlFlow;
 use tokio::sync::mpsc;
@@ -39,26 +40,45 @@ pub async fn run_tui() -> io::Result<()> {
 
     let mut events = EventStream::new();
 
+    use std::time::Instant;
+
+    let mut last_tick = Instant::now();
+
     let run_inner = async {
         loop {
             tokio::select! {
-                biased;
+                    biased;
 
                 Some(ev) = evt_rx.recv() => {
                     apply_worker_event(&mut state, ev);
+
+                    let now = Instant::now();
+                    state.notifications.tick(now.saturating_duration_since(last_tick));
+                    last_tick = now;
+
                     terminal.draw(|f| ui::render(f, &mut state))?;
                 }
 
                 reader = events.next() => {
                     match reader {
                         Some(Ok(ev)) => {
-                            if matches!(&ev, Event::Resize(_,_)) {
+                            if matches!(&ev, Event::Resize(_, _)) {
+                                let now = Instant::now();
+                                state.notifications.tick(now.saturating_duration_since(last_tick));
+                                last_tick = now;
+
                                 terminal.draw(|f| ui::render(f, &mut state))?;
                                 continue;
                             }
+
                             if handle_event(&mut state, &cmd_tx, ev).await == ControlFlow::Break(()) {
                                 return Ok::<(), io::Error>(());
                             }
+
+                            let now = Instant::now();
+                            state.notifications.tick(now.saturating_duration_since(last_tick));
+                            last_tick = now;
+
                             terminal.draw(|f| ui::render(f, &mut state))?;
                         }
                         Some(Err(e)) => return Err(e),
@@ -68,7 +88,6 @@ pub async fn run_tui() -> io::Result<()> {
             }
         }
     };
-
     let result = run_inner.await;
 
     disable_raw_mode()?;
@@ -84,7 +103,7 @@ fn apply_worker_event(state: &mut AppState, ev: WorkerEvent) {
         } => {
             state.busy = false;
             if let Some(msg) = status_line {
-                state.status_line = msg;
+                state.notify(msg, Level::Info, Anchor::TopRight, 2);
             }
             if let Ok(v) = distributions {
                 state.distributions = v;
@@ -98,7 +117,7 @@ fn apply_worker_event(state: &mut AppState, ev: WorkerEvent) {
         }
         WorkerEvent::CustomActionFinished { status_line } => {
             state.busy = false;
-            state.status_line = status_line.clone();
+            state.notify(status_line.clone(), Level::Info, Anchor::TopRight, 2);
 
             if let Modal::ActionOutput {
                 output, finished, ..
@@ -115,10 +134,14 @@ fn apply_worker_event(state: &mut AppState, ev: WorkerEvent) {
 
 pub async fn dispatch(state: &mut AppState, tx: &mpsc::Sender<WorkerCmd>, cmd: WorkerCmd) {
     state.busy = true;
-    state.status_line = "Working...".to_string();
     if tx.send(cmd).await.is_err() {
         state.busy = false;
-        state.status_line = "WSL worker has stopped".to_string();
+        state.notify(
+            "WSL worker has stopped".to_string(),
+            Level::Error,
+            Anchor::TopRight,
+            2,
+        );
     }
 }
 
@@ -164,11 +187,13 @@ fn handle_search_key(state: &mut AppState, code: KeyCode) -> ControlFlow<()> {
     match code {
         KeyCode::Esc | KeyCode::Enter => {
             state.search_active = false;
-            state.status_line = if state.search_query.is_empty() {
+            let msg = if state.search_query.is_empty() {
                 "Search Cleared".to_string()
             } else {
                 format!("Search: {}", state.search_query)
             };
+
+            state.notify(msg, Level::Info, Anchor::TopRight, 2);
         }
         KeyCode::Backspace => {
             state.search_query.pop();

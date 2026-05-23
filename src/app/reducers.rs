@@ -5,6 +5,7 @@ use crate::config;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::{Block, Borders, HighlightSpacing};
 use ratatui_explorer::{File, FileExplorer, FileExplorerBuilder, Theme};
+use ratatui_notifications::{Anchor, Level};
 
 pub fn explorer_theme() -> Theme {
     Theme::default()
@@ -118,7 +119,6 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
         }
         AppAction::ShutdownPrompt => {
             state.modal = Modal::ConfirmShutdown;
-            state.status_line = "Shutdown stops all WSL2 VMs, press y to confirm!".to_string();
 
             vec![]
         }
@@ -146,8 +146,12 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
             if let Some(distro) = state.selected_distro().map(|d| d.name.clone()) {
                 let actions = config::load_or_create().custom_actions;
                 if actions.is_empty() {
-                    state.status_line =
-                        "No custom actions configured in settings.json.".to_string();
+                    state.notify(
+                        "No custom actions configured in settings.json.".to_string(),
+                        Level::Info,
+                        Anchor::TopRight,
+                        2,
+                    );
                 } else {
                     state.modal = Modal::CustomActionsMenu {
                         distro,
@@ -167,7 +171,12 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
             state.selected = 0;
             state.clamp_selection();
             state.search_active = false;
-            state.status_line = "Search Cleared".to_string();
+            state.notify(
+                "Cancelled!".to_string(),
+                Level::Info,
+                ratatui_notifications::Anchor::TopCenter,
+                2,
+            );
             vec![]
         }
         AppAction::TogglePin => {
@@ -182,24 +191,26 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
             state.clamp_selection();
             if names.len() == 1 {
                 let d = &names[0];
-                state.status_line = if state.pinned.contains(d) {
+                let msg = if state.pinned.contains(d) {
                     format!("Pinned {}", d)
                 } else {
                     format!("Unpinned {}", d)
                 };
+                state.notify(msg, Level::Info, Anchor::TopRight, 2);
             } else {
-                state.status_line = format!("Toggled pin for {} distros", names.len());
+                state.notify(format!("Toggled pin for {} distros", names.len()), Level::Info, Anchor::TopRight, 2);
             }
             vec![]
         }
         AppAction::ToggleMultiSelect => {
             if let Some(name) = state.selected_distro().map(|d| d.name.clone()) {
                 state.toggle_multi_select(&name);
-                state.status_line = if state.selected_multi.contains(&name) {
+                let msg = if state.selected_multi.contains(&name) {
                     format!("Marked: {}", name)
                 } else {
                     format!("Unmarked: {}", name)
                 };
+                state.notify(msg, Level::Info, Anchor::TopRight, 2);
             }
             vec![]
         }

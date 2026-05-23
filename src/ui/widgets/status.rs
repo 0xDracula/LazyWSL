@@ -102,14 +102,3 @@ pub fn details_widget(state: &AppState, color: Color) -> Paragraph<'_> {
                 .padding(Padding::horizontal(1)),
         )
 }
-
-pub fn status_widget(state: &AppState) -> Paragraph<'static> {
-    Paragraph::new(state.status_line.clone()).block(
-        Block::default()
-            .title(" Status ")
-            .title_alignment(Alignment::Center)
-            .borders(Borders::ALL)
-            .border_type(BorderType::Rounded)
-            .border_style(Style::default().fg(Color::Rgb(120, 180, 255))),
-    )
-}
