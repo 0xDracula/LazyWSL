@@ -10,6 +10,7 @@ use tokio::sync::mpsc::Sender;
 pub struct AppState {
     pub distributions: Vec<Distribution>,
     pub selected: usize,
+    // TODO! replacing status_line with toast notifications
     pub status_line: String,
     pub busy: bool,
     pub modal: Modal,
@@ -186,4 +187,3 @@ pub fn save_pins(pins: &HashSet<String>) {
         let _ = fs::write(path, s);
     }
 }
-
