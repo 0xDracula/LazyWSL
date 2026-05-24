@@ -102,10 +102,10 @@ Example Configuration:
 - [x] Custom Actions
 - [x] Search
 - [x] Multi-select
-- [] Distro Cloning
-- [] Snapshot / Rollback-system
-- [] Plugin System
-- [] Configurable Keymaps
+- [ ] Distro Cloning
+- [ ] Snapshot / Rollback-system
+- [ ] Plugin System
+- [ ] Configurable Keymaps
 
 ## Contributing
 
