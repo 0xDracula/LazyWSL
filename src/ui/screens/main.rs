@@ -37,7 +37,7 @@ pub fn render_main(frame: &mut Frame<'_>, state: &mut AppState) {
     frame.render_widget(details, main_chunks[1]);
 
     let help = Paragraph::new(
-        "a actions | h help | r run distro | Enter shell | t terminate | d default | u unregister | s shutdown | q/Esc quit"
+        "h help | r run distro | Enter shell | t terminate | d default | u unregister | s shutdown | q/Esc quit"
     ).style(Style::default().fg(Color::DarkGray));
     frame.render_widget(help, chunks[1]);
 

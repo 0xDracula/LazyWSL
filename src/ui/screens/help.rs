@@ -39,6 +39,8 @@ pub fn render_help(frame: &mut Frame<'_>) {
         keybind("e", "Export distro"),
         keybind("i", "Import distro"),
         keybind("a", "Custom actions"),
+        keybind("p", "Pin distro"),
+        keybind("Space", "Multi Select"),
         Line::from(""),
         Line::from(Span::styled(
             "Danger Zone",
