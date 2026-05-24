@@ -1,5 +1,6 @@
 use crate::config::CustomActions;
 use crate::wsl::Distribution;
+use ratatui::style::{Color, Style};
 use ratatui_explorer::FileExplorer;
 use ratatui_notifications::{AutoDismiss, Notifications, Timing};
 use serde::{Deserialize, Serialize};
@@ -114,6 +115,7 @@ impl AppState {
                 Timing::Fixed(Duration::from_secs(2)),
                 Timing::Fixed(Duration::from_millis(300)),
             )
+            .border_style(Style::default().fg(Color::Cyan))
             .build()
             .unwrap();
 

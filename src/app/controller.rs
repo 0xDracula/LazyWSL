@@ -17,7 +17,9 @@ use ratatui::backend::CrosstermBackend;
 use ratatui_notifications::{Anchor, Level};
 use std::io;
 use std::ops::ControlFlow;
+use std::time::Duration;
 use tokio::sync::mpsc;
+use tokio::time;
 use tokio_stream::StreamExt;
 
 pub async fn run_tui() -> io::Result<()> {
@@ -43,49 +45,40 @@ pub async fn run_tui() -> io::Result<()> {
     use std::time::Instant;
 
     let mut last_tick = Instant::now();
+    let mut tick = time::interval(Duration::from_millis(16));
 
     let run_inner = async {
         loop {
             tokio::select! {
-                    biased;
+                biased;
 
                 Some(ev) = evt_rx.recv() => {
                     apply_worker_event(&mut state, ev);
-
-                    let now = Instant::now();
-                    state.notifications.tick(now.saturating_duration_since(last_tick));
-                    last_tick = now;
-
-                    terminal.draw(|f| ui::render(f, &mut state))?;
                 }
 
                 reader = events.next() => {
                     match reader {
                         Some(Ok(ev)) => {
-                            if matches!(&ev, Event::Resize(_, _)) {
-                                let now = Instant::now();
-                                state.notifications.tick(now.saturating_duration_since(last_tick));
-                                last_tick = now;
-
-                                terminal.draw(|f| ui::render(f, &mut state))?;
-                                continue;
-                            }
-
                             if handle_event(&mut state, &cmd_tx, ev).await == ControlFlow::Break(()) {
                                 return Ok::<(), io::Error>(());
                             }
-
-                            let now = Instant::now();
-                            state.notifications.tick(now.saturating_duration_since(last_tick));
-                            last_tick = now;
-
-                            terminal.draw(|f| ui::render(f, &mut state))?;
                         }
                         Some(Err(e)) => return Err(e),
                         None => return Ok::<(), io::Error>(()),
                     }
                 }
+                _ = tick.tick() => {}
             }
+
+            let now = Instant::now();
+
+            state
+                .notifications
+                .tick(now.saturating_duration_since(last_tick));
+
+            last_tick = now;
+
+            terminal.draw(|f| ui::render(f, &mut state))?;
         }
     };
     let result = run_inner.await;
