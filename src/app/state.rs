@@ -56,6 +56,10 @@ pub enum Modal {
         actions: Vec<CustomActions>,
         selected: usize,
     },
+    CloneDistro {
+        distro: String,
+        new_name: String,
+    },
     ActionOutput {
         distro: String,
         action_name: String,

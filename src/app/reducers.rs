@@ -198,7 +198,12 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
                 };
                 state.notify(msg, Level::Info, Anchor::TopRight, 2);
             } else {
-                state.notify(format!("Toggled pin for {} distros", names.len()), Level::Info, Anchor::TopRight, 2);
+                state.notify(
+                    format!("Toggled pin for {} distros", names.len()),
+                    Level::Info,
+                    Anchor::TopRight,
+                    2,
+                );
             }
             vec![]
         }
@@ -212,6 +217,15 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
                 };
                 state.notify(msg, Level::Info, Anchor::TopRight, 2);
             }
+            vec![]
+        }
+        AppAction::ClonePrompt => {
+            if let Some(distro) = state.selected_distro().map(|d| d.name.clone()) {
+                state.modal = Modal::CloneDistro {
+                    distro,
+                    new_name: String::new(),
+                }
+            };
             vec![]
         }
         AppAction::Ignore => vec![],

@@ -2,14 +2,19 @@ use crate::app::controller::dispatch;
 use crate::app::reducers::explorer_theme;
 use crate::app::worker::commands::WorkerCmd;
 use crate::app::{AppState, Modal};
+use crate::config;
 use crate::ui::Component;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui_explorer::FileExplorerBuilder;
+use ratatui_notifications::Level::Info;
 use ratatui_notifications::{Anchor, Level};
+use std::fs;
 use std::future::Future;
 use std::ops::ControlFlow;
 use std::pin::Pin;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::mpsc;
+
 pub struct ModalComponent;
 
 impl ModalComponent {
@@ -356,7 +361,12 @@ impl ModalComponent {
                     KeyCode::Char('c') if finished => {
                         let mut clipboard = arboard::Clipboard::new().unwrap();
                         let _ = clipboard.set_text(&output);
-                        state.notify("Output copied to clipboard".to_string(), Level::Info, Anchor::TopRight, 2);
+                        state.notify(
+                            "Output copied to clipboard".to_string(),
+                            Level::Info,
+                            Anchor::TopRight,
+                            2,
+                        );
                         state.modal = Modal::ActionOutput {
                             distro,
                             action_name,
@@ -386,7 +396,136 @@ impl ModalComponent {
                     }
                 }
             }
+            Modal::CloneDistro {
+                distro,
+                mut new_name,
+            } => match code {
+                KeyCode::Esc => {
+                    state.modal = Modal::None;
+                    state.notify("Cancelled".to_string(), Level::Info, Anchor::TopRight, 2);
+                    ControlFlow::Continue(())
+                }
 
+                KeyCode::Backspace => {
+                    new_name.pop();
+                    state.modal = Modal::CloneDistro { distro, new_name };
+                    ControlFlow::Continue(())
+                }
+
+                KeyCode::Char(c) => {
+                    new_name.push(c);
+                    state.modal = Modal::CloneDistro { distro, new_name };
+                    ControlFlow::Continue(())
+                }
+
+                KeyCode::Enter => {
+                    let target = new_name.trim().to_string();
+
+                    if target.is_empty() {
+                        state.notify(
+                            "Target name can't be empty".to_string(),
+                            Level::Warn,
+                            Anchor::TopRight,
+                            4,
+                        );
+                        state.modal = Modal::CloneDistro { distro, new_name };
+                        return ControlFlow::Continue(());
+                    }
+
+                    if target == distro {
+                        state.notify(
+                            "Clone name must be different".to_string(),
+                            Level::Warn,
+                            Anchor::TopRight,
+                            4,
+                        );
+                        state.modal = Modal::CloneDistro { distro, new_name };
+                        return ControlFlow::Continue(());
+                    }
+
+                    if state.distributions.iter().any(|d| d.name == target) {
+                        state.notify(
+                            format!("Distro `{target}` already exists"),
+                            Level::Warn,
+                            Anchor::TopRight,
+                            3,
+                        );
+                        state.modal = Modal::CloneDistro { distro, new_name };
+                        return ControlFlow::Continue(());
+                    }
+
+                    let base = config::config_dir().join("clones");
+                    let export_dir = base.join("exports");
+                    let distros_dir = base.join("distros");
+
+                    if let Err(e) = fs::create_dir_all(&export_dir) {
+                        state.notify(
+                            "Failed to create export dir".to_string(),
+                            Level::Error,
+                            Anchor::TopRight,
+                            4,
+                        );
+                        state.modal = Modal::CloneDistro { distro, new_name };
+                        return ControlFlow::Continue(());
+                    };
+
+                    if let Err(e) = fs::create_dir_all(&distros_dir) {
+                        state.notify(
+                            "Failed to create distros dir".to_string(),
+                            Level::Error,
+                            Anchor::TopRight,
+                            4,
+                        );
+                        state.modal = Modal::CloneDistro { distro, new_name };
+                        return ControlFlow::Continue(());
+                    };
+
+                    let ts = SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_secs();
+
+                    let tar_path = export_dir.join(format!("{distro}-clone-{target}-{ts}.tar"));
+
+                    let install_path = distros_dir.join(&target);
+
+                    if let Err(e) = fs::create_dir_all(&install_path) {
+                        state.notify(
+                            format!("Failed to create install dir: {e}"),
+                            Level::Error,
+                            Anchor::TopRight,
+                            4,
+                        );
+                        state.modal = Modal::CloneDistro { distro, new_name };
+                        return ControlFlow::Continue(());
+                    }
+
+                    state.modal = Modal::None;
+
+                    dispatch(
+                        state,
+                        cmd_tx,
+                        WorkerCmd::Batch(vec![
+                            WorkerCmd::Export {
+                                distro: distro.clone(),
+                                output: tar_path.clone(),
+                            },
+                            WorkerCmd::Import {
+                                name: target,
+                                tar_path,
+                                install_path,
+                            },
+                            WorkerCmd::Refresh,
+                        ]),
+                    )
+                    .await;
+                    ControlFlow::Continue(())
+                }
+                _ => {
+                    state.modal = Modal::CloneDistro { distro, new_name };
+                    ControlFlow::Continue(())
+                }
+            },
             Modal::None => ControlFlow::Continue(()),
         }
     }

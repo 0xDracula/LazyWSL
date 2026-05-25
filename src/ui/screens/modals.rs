@@ -213,5 +213,43 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
             frame.render_widget(Clear, popup);
             frame.render_widget(para, popup);
         }
+        Modal::CloneDistro { distro, new_name } => {
+            let pop_up = centered_rect(55, 25, frame.area());
+            let lines = vec![
+                Line::from(vec![
+                    Span::styled(
+                        "Clone: ",
+                        Style::default()
+                            .fg(Color::DarkGray)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                    Span::styled(distro.clone(), Style::default().fg(Color::Cyan)),
+                ]),
+                Line::from(""),
+                Line::from(vec![
+                    Span::styled(
+                        "New name: ",
+                        Style::default()
+                            .fg(Color::DarkGray)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                    Span::styled(new_name.clone(), Style::default().fg(Color::White)),
+                ]),
+                Line::from(""),
+                Line::from(Span::styled(
+                    "Enter to Clone, Esc to Cancel",
+                    Style::default().fg(Color::DarkGray),
+                )),
+            ];
+
+            let para = Paragraph::new(lines).block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title(" Clone Distro "),
+            );
+
+            frame.render_widget(Clear, pop_up);
+            frame.render_widget(para, pop_up);
+        }
     }
 }

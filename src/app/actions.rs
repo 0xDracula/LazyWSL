@@ -19,6 +19,7 @@ pub enum AppAction {
     ClearSearch,
     TogglePin,
     ToggleMultiSelect,
+    ClonePrompt,
 }
 
 pub fn map_key(code: KeyCode) -> AppAction {
@@ -40,6 +41,7 @@ pub fn map_key(code: KeyCode) -> AppAction {
         KeyCode::Char(' ') => AppAction::ToggleMultiSelect,
         KeyCode::Down => AppAction::MoveSelection(1),
         KeyCode::Up => AppAction::MoveSelection(-1),
+        KeyCode::Char('n') | KeyCode::Char('N') => AppAction::ClonePrompt,
         _ => AppAction::Ignore,
     }
 }

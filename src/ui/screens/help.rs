@@ -19,7 +19,7 @@ fn keybind(key: &str, desc: &str) -> Line<'static> {
     ])
 }
 pub fn render_help(frame: &mut Frame<'_>) {
-    let pop_up = centered_rect(60, 70, frame.area());
+    let pop_up = centered_rect(60, 80, frame.area());
 
     let lines = vec![
         Line::from(""),
@@ -40,6 +40,7 @@ pub fn render_help(frame: &mut Frame<'_>) {
         keybind("i", "Import distro"),
         keybind("a", "Custom actions"),
         keybind("p", "Pin distro"),
+        keybind("n", "Clone Distro"),
         keybind("Space", "Multi Select"),
         Line::from(""),
         Line::from(Span::styled(
