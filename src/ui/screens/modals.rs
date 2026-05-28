@@ -251,5 +251,133 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
             frame.render_widget(Clear, pop_up);
             frame.render_widget(para, pop_up);
         }
+
+        Modal::RollBackDistroPicker { distros, selected } => {
+            let popup = centered_rect(70, 55, frame.area());
+            let mut lines = vec![Line::from(Span::styled(
+                "Select distro to restore",
+                Style::default()
+                    .fg(Color::DarkGray)
+                    .add_modifier(Modifier::BOLD),
+            ))];
+
+            lines.push(Line::from(""));
+
+            for (i, name) in distros.iter().enumerate() {
+                let marker = if i == *selected { "> " } else { " " };
+                let style = if i == *selected {
+                    Style::default()
+                        .fg(Color::Black)
+                        .bg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(Color::White)
+                };
+
+                lines.push(Line::from(vec![
+                    Span::styled(marker.to_string(), style),
+                    Span::styled(name.clone(), style),
+                ]));
+            }
+
+            lines.push(Line::from(""));
+            lines.push(Line::from(Span::styled(
+                "Enter to selected - Esc to clone",
+                Style::default().fg(Color::DarkGray),
+            )));
+
+            let para = Paragraph::new(lines)
+                .block(Block::default().borders(Borders::ALL).title(" RollBack "));
+
+            frame.render_widget(Clear, popup);
+            frame.render_widget(para, popup);
+        }
+
+        Modal::RollBackSnapShotPicker {
+            distro,
+            snapshots,
+            selected,
+        } => {
+            let popup = centered_rect(80, 60, frame.area());
+            let mut lines = vec![Line::from(vec![
+                Span::styled(
+                    "Distro: ",
+                    Style::default()
+                        .fg(Color::DarkGray)
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(distro.clone(), Style::default().fg(Color::Cyan)),
+            ])];
+            lines.push(Line::from(""));
+
+            for (i, p) in snapshots.iter().enumerate() {
+                let name = p
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("<snapsshot>")
+                    .to_string();
+
+                let marker = if i == *selected { "> " } else { " " };
+                let style = if i == *selected {
+                    Style::default()
+                        .fg(Color::Black)
+                        .bg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(Color::White)
+                };
+
+                lines.push(Line::from(vec![
+                    Span::styled(marker.to_string(), style),
+                    Span::styled(name, style),
+                ]));
+            }
+
+            lines.push(Line::from(""));
+            lines.push(Line::from(Span::styled(
+                "Enter to confirm - Esc to cancel",
+                Style::default().fg(Color::DarkGray),
+            )));
+
+            let para = Paragraph::new(lines).block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title(" Choose Snapshot "),
+            );
+
+            frame.render_widget(Clear, popup);
+            frame.render_widget(para, popup);
+        }
+
+        Modal::ConfirmRollBack {
+            distro,
+            snapshot,
+            exists,
+        } => {
+            let pop = centered_rect(70, 25, frame.area());
+            let snap_name = snapshot
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or("<snapshot>");
+
+            let msg = if *exists {
+                format!(
+                    "Rollback `{distro}` from `{snap_name}`?\n\nThis will DELETE the existing distro first.\n\n Press y to confirm, n to cancel."
+                )
+            } else {
+                format!(
+                    "Restore `{distro}` from `{snap_name}`?\n\nA new distro will be imported\n\nPress y to confirm, n to cancel."
+                )
+            };
+
+            let para = Paragraph::new(msg).block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title(" Confirm RollBack "),
+            );
+
+            frame.render_widget(Clear, pop);
+            frame.render_widget(para, pop);
+        }
     }
 }

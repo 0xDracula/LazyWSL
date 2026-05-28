@@ -68,6 +68,20 @@ pub enum Modal {
         input: String,
         input_tx: Sender<String>,
     },
+    RollBackDistroPicker {
+        distros: Vec<String>,
+        selected: usize,
+    },
+    RollBackSnapShotPicker {
+        distro: String,
+        snapshots: Vec<PathBuf>,
+        selected: usize,
+    },
+    ConfirmRollBack {
+        distro: String,
+        snapshot: PathBuf,
+        exists: bool,
+    },
 }
 
 impl Default for AppState {

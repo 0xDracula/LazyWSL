@@ -1,6 +1,6 @@
 use crate::app::actions::AppAction;
 use crate::app::worker::commands::WorkerCmd;
-use crate::app::{AppState, Modal};
+use crate::app::{AppState, Modal, snapshots};
 use crate::config;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::{Block, Borders, HighlightSpacing};
@@ -226,6 +226,24 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
                     new_name: String::new(),
                 }
             };
+            vec![]
+        }
+        AppAction::RollBackPrompt => {
+            let distros = snapshots::list_snapshot_distros();
+            if distros.is_empty() {
+                state.notify(
+                    "No Snapshots found".to_string(),
+                    Level::Info,
+                    Anchor::TopRight,
+                    2,
+                );
+            } else {
+                state.modal = Modal::RollBackDistroPicker {
+                    distros,
+                    selected: 0,
+                };
+            }
+
             vec![]
         }
         AppAction::Ignore => vec![],

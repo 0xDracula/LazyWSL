@@ -1,16 +1,16 @@
 use crate::app::controller::dispatch;
 use crate::app::reducers::explorer_theme;
 use crate::app::worker::commands::WorkerCmd;
-use crate::app::{AppState, Modal};
+use crate::app::{AppState, Modal, snapshots};
 use crate::config;
 use crate::ui::Component;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui_explorer::FileExplorerBuilder;
-use ratatui_notifications::Level::Info;
 use ratatui_notifications::{Anchor, Level};
 use std::fs;
 use std::future::Future;
 use std::ops::ControlFlow;
+use std::path::PathBuf;
 use std::pin::Pin;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::mpsc;
@@ -526,6 +526,159 @@ impl ModalComponent {
                     ControlFlow::Continue(())
                 }
             },
+            Modal::RollBackDistroPicker {
+                distros,
+                mut selected,
+            } => match code {
+                KeyCode::Esc => {
+                    state.modal = Modal::None;
+                    ControlFlow::Continue(())
+                }
+
+                KeyCode::Up => {
+                    selected = selected.saturating_sub(1);
+                    state.modal = Modal::RollBackDistroPicker { distros, selected };
+                    ControlFlow::Continue(())
+                }
+
+                KeyCode::Down => {
+                    if !distros.is_empty() {
+                        selected = (selected + 1).min(distros.len() - 1);
+                    }
+                    state.modal = Modal::RollBackDistroPicker { distros, selected };
+                    ControlFlow::Continue(())
+                }
+
+                KeyCode::Enter => {
+                    if let Some(distro) = distros.get(selected).clone() {
+                        let snaps = snapshots::list_snapshots_for_distro(&distro);
+                        if snaps.is_empty() {
+                            state.notify(
+                                format!("No snapshots found for {distro}"),
+                                Level::Info,
+                                Anchor::TopRight,
+                                2,
+                            );
+                            state.modal = Modal::RollBackDistroPicker { distros, selected };
+                            return ControlFlow::Continue(());
+                        }
+                        state.modal = Modal::RollBackSnapShotPicker {
+                            distro: distro.clone(),
+                            snapshots: snaps,
+                            selected: 0,
+                        };
+                    }
+                    ControlFlow::Continue(())
+                }
+
+                _ => {
+                    state.modal = Modal::RollBackDistroPicker { distros, selected };
+                    ControlFlow::Continue(())
+                }
+            },
+            Modal::RollBackSnapShotPicker {
+                distro,
+                snapshots,
+                mut selected,
+            } => match code {
+                KeyCode::Esc => {
+                    state.modal = Modal::None;
+                    ControlFlow::Continue(())
+                }
+
+                KeyCode::Up => {
+                    selected = selected.saturating_sub(1);
+                    state.modal = Modal::RollBackSnapShotPicker {
+                        distro,
+                        snapshots,
+                        selected,
+                    };
+                    ControlFlow::Continue(())
+                }
+
+                KeyCode::Down => {
+                    if !snapshots.is_empty() {
+                        selected = (selected + 1).min(snapshots.len() - 1);
+                    }
+                    state.modal = Modal::RollBackSnapShotPicker {
+                        distro,
+                        snapshots,
+                        selected,
+                    };
+                    ControlFlow::Continue(())
+                }
+
+                KeyCode::Enter => {
+                    if let Some(snapshot) = snapshots.get(selected).cloned() {
+                        let exists = state.distributions.iter().any(|d| d.name == distro);
+                        state.modal = Modal::ConfirmRollBack {
+                            distro,
+                            snapshot,
+                            exists,
+                        };
+                    } else {
+                        state.modal = Modal::RollBackSnapShotPicker {
+                            distro,
+                            snapshots,
+                            selected,
+                        };
+                    }
+                    ControlFlow::Continue(())
+                }
+                _ => {
+                    state.modal = Modal::RollBackSnapShotPicker {
+                        distro,
+                        snapshots,
+                        selected,
+                    };
+                    ControlFlow::Continue(())
+                }
+            },
+            Modal::ConfirmRollBack {
+                distro,
+                snapshot,
+                exists,
+            } => match code {
+                KeyCode::Char('y') => {
+                    let install_path = state
+                        .distributions
+                        .iter()
+                        .find(|d| d.name == distro)
+                        .and_then(|d| d.install_path.as_deref().map(PathBuf::from))
+                        .unwrap_or_else(|| config::config_dir().join("restores").join(&distro));
+
+                    let mut cmds = vec![WorkerCmd::Shutdown];
+                    if exists {
+                        cmds.push(WorkerCmd::Unregister(distro.clone()));
+                    }
+                    cmds.push(WorkerCmd::Import {
+                        name: distro.clone(),
+                        tar_path: snapshot,
+                        install_path,
+                    });
+                    cmds.push(WorkerCmd::Refresh);
+
+                    dispatch(state, cmd_tx, WorkerCmd::Batch(cmds)).await;
+                    ControlFlow::Continue(())
+                }
+
+                KeyCode::Char('n') => {
+                    state.notify("Cancelled".to_string(), Level::Info, Anchor::TopRight, 2);
+                    ControlFlow::Continue(())
+                }
+
+                KeyCode::Char('q') => ControlFlow::Break(()),
+
+                _ => {
+                    state.modal = Modal::ConfirmRollBack {
+                        distro,
+                        snapshot,
+                        exists,
+                    };
+                    ControlFlow::Continue(())
+                }
+            },
+
             Modal::None => ControlFlow::Continue(()),
         }
     }

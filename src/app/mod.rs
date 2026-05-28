@@ -2,6 +2,7 @@ mod actions;
 mod components;
 mod controller;
 mod reducers;
+mod snapshots;
 mod state;
 pub mod worker;
 
