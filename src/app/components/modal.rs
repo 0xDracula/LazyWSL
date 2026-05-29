@@ -647,6 +647,16 @@ impl ModalComponent {
                         .and_then(|d| d.install_path.as_deref().map(PathBuf::from))
                         .unwrap_or_else(|| config::config_dir().join("restores").join(&distro));
 
+                    if let Err(e) = std::fs::create_dir_all(&install_path) {
+                        state.notify(
+                            format!("Failed to create install dir: {e}"),
+                            Level::Error,
+                            Anchor::TopRight,
+                            3,
+                        );
+                        return ControlFlow::Continue(());
+                    }
+
                     let mut cmds = vec![WorkerCmd::Shutdown];
                     if exists {
                         cmds.push(WorkerCmd::Unregister(distro.clone()));

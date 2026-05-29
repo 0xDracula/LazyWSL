@@ -17,6 +17,7 @@ ratatui-explorer = "0.3.0"
 dirs = "6.0.0"
 arboard = "3.6.1"
 ratatui-notifications = "0.1.0"
+chrono = "0.4.44"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.56.0"

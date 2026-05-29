@@ -246,6 +246,38 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
 
             vec![]
         }
+        AppAction::SnapshotPrompt => {
+            let Some(distro) = state.selected_distro().map(|d| d.name.clone()) else {
+                state.notify(
+                    "No distro selected".to_string(),
+                    Level::Info,
+                    Anchor::TopRight,
+                    2,
+                );
+                return vec![];
+            };
+
+            match snapshots::next_snapshot_path(&distro) {
+                Ok(output) => {
+                    state.notify(
+                        "Snapshotting `{distro}`...".to_string(),
+                        Level::Info,
+                        Anchor::TopRight,
+                        2,
+                    );
+                    vec![WorkerCmd::Export { distro, output }]
+                }
+                Err(e) => {
+                    state.notify(
+                        format!("Snapshot path error: {e}"),
+                        Level::Error,
+                        Anchor::TopRight,
+                        2,
+                    );
+                    vec![]
+                }
+            }
+        }
         AppAction::Ignore => vec![],
     }
 }

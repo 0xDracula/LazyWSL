@@ -21,6 +21,7 @@ pub enum AppAction {
     ToggleMultiSelect,
     ClonePrompt,
     RollBackPrompt,
+    SnapshotPrompt,
 }
 
 pub fn map_key(code: KeyCode) -> AppAction {
@@ -44,6 +45,7 @@ pub fn map_key(code: KeyCode) -> AppAction {
         KeyCode::Up => AppAction::MoveSelection(-1),
         KeyCode::Char('n') | KeyCode::Char('N') => AppAction::ClonePrompt,
         KeyCode::Char('b') | KeyCode::Char('B') => AppAction::RollBackPrompt,
+        KeyCode::Char('z') | KeyCode::Char('Z') => AppAction::SnapshotPrompt,
         _ => AppAction::Ignore,
     }
 }

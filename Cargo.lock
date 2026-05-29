@@ -8,6 +8,7 @@ version = "1.0.0"
 dependencies = [
  "arboard",
  "async-trait",
+ "chrono",
  "crossterm",
  "directories",
  "dirs",
