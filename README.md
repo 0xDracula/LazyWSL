@@ -103,7 +103,7 @@ Example Configuration:
 - [x] Search
 - [x] Multi-select
 - [x] Distro Cloning
-- [ ] Snapshot / Rollback-system
+- [x] Snapshot / Rollback-system
 - [ ] Plugin System
 - [ ] Configurable Keymaps
 
