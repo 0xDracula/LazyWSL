@@ -16,6 +16,17 @@ to build and run LazyWSL locally, you will need:
 
 ### dev setup
 
+#### linux/macos
+
+LazyWSL is a Windows tool, but most of the logic (state, parsing, UI, etc) is platform independent and sits behind the `WSLService` trait. you can develop the whole thing on linux/macos using the built-in mock backend
+
+run the tui with
+
+```LAZYWSL_MOCK=1 cargo run
+```
+
+on non-windows platforms that mock is automatically used, so plain `cargo run` works too! on windows set `LAZYWSL_MOCK=1` to force mock (useful for UI testing)
+
 1. fork
 2. clone your fork
 3. build and run (cargo run)
