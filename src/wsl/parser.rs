@@ -42,8 +42,6 @@ pub fn parse_wsl_output(decoded: &str) -> Vec<Distribution> {
 
 #[cfg(not(windows))]
 pub fn get_distro_path() -> std::io::Result<Vec<(String, String)>> {
-    println!("Windows Only Function");
-
     Ok(vec![])
 }
 
