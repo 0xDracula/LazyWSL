@@ -359,14 +359,25 @@ impl ModalComponent {
                     }
 
                     KeyCode::Char('c') if finished => {
-                        let mut clipboard = arboard::Clipboard::new().unwrap();
-                        let _ = clipboard.set_text(&output);
-                        state.notify(
-                            "Output copied to clipboard".to_string(),
-                            Level::Info,
-                            Anchor::TopRight,
-                            2,
-                        );
+                        match arboard::Clipboard::new() {
+                            Ok(mut clipboard) => {
+                                let _ = clipboard.set_text(&output);
+                                state.notify(
+                                    "Output copied to clipboard".to_string(),
+                                    Level::Info,
+                                    Anchor::TopRight,
+                                    2,
+                                );
+                            }
+                            Err(e) => {
+                                state.notify(
+                                    format!("Clipboard unavailable: {e}"),
+                                    Level::Error,
+                                    Anchor::TopRight,
+                                    2,
+                                );
+                            }
+                        }
                         state.modal = Modal::ActionOutput {
                             distro,
                             action_name,
