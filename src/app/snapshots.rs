@@ -55,7 +55,7 @@ pub fn next_snapshot_path(distro: &str) -> std::io::Result<PathBuf> {
             let name = name.to_string_lossy();
 
             if let Some(rest) = name.strip_prefix(&format!("{date}_")) {
-                if let Some(n_str) = rest.strip_prefix(".tar") {
+                if let Some(n_str) = rest.strip_suffix(".tar") {
                     if let Ok(n) = n_str.parse::<u32>() {
                         max_n = max_n.max(n);
                     }
@@ -66,4 +66,53 @@ pub fn next_snapshot_path(distro: &str) -> std::io::Result<PathBuf> {
 
     let next = max_n + 1;
     Ok(dir.join(format!("{date}_{:03}.tar", next)))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    fn max_index_in(dir: &std::path::Path, date: &str) -> u32 {
+        let mut max_n = 0u32;
+        if let Ok(rd) = fs::read_dir(dir) {
+            for e in rd.flatten() {
+                let name = e.file_name();
+                let name = name.to_string_lossy();
+                if let Some(rest) = name.strip_prefix(&format!("{date}_")) {
+                    if let Some(n_str) = rest.strip_suffix(".tar") {
+                        if let Ok(n) = n_str.parse::<u32>() {
+                            max_n = max_n.max(n);
+                        }
+                    }
+                }
+            }
+        }
+        max_n
+    }
+
+    #[test]
+    fn finds_highest_same_day_index() {
+        let tmp = std::env::temp_dir().join(format!("lazywsl_snap_{}", std::process::id()));
+        fs::create_dir_all(&tmp).unwrap();
+        let date = "2026-06-19";
+        fs::write(tmp.join(format!("{date}_001.tar")), b"x").unwrap();
+        fs::write(tmp.join(format!("{date}_002.tar")), b"x").unwrap();
+        fs::write(tmp.join(format!("{date}_003.tar")), b"x").unwrap();
+
+        assert_eq!(
+            max_index_in(&tmp, date),
+            3,
+            "next would be _004, not overwrite _001"
+        );
+
+        fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn empty_dir_yields_zero() {
+        let tmp = std::env::temp_dir().join(format!("lazywsl_snap_empty_{}", std::process::id()));
+        fs::create_dir_all(&tmp).unwrap();
+        assert_eq!(max_index_in(&tmp, "2026-06-19"), 0);
+        fs::remove_dir_all(&tmp).ok();
+    }
 }
