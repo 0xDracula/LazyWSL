@@ -260,7 +260,7 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
             match snapshots::next_snapshot_path(&distro) {
                 Ok(output) => {
                     state.notify(
-                        "Snapshotting `{distro}`...".to_string(),
+                        format!("Snapshotting `{distro}`..."),
                         Level::Info,
                         Anchor::TopRight,
                         2,
