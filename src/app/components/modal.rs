@@ -469,7 +469,7 @@ impl ModalComponent {
                     let export_dir = base.join("exports");
                     let distros_dir = base.join("distros");
 
-                    if let Err(e) = fs::create_dir_all(&export_dir) {
+                    if let Err(_) = fs::create_dir_all(&export_dir) {
                         state.notify(
                             "Failed to create export dir".to_string(),
                             Level::Error,
@@ -480,7 +480,7 @@ impl ModalComponent {
                         return ControlFlow::Continue(());
                     };
 
-                    if let Err(e) = fs::create_dir_all(&distros_dir) {
+                    if let Err(_) = fs::create_dir_all(&distros_dir) {
                         state.notify(
                             "Failed to create distros dir".to_string(),
                             Level::Error,
