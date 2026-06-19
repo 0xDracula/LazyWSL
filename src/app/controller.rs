@@ -6,7 +6,7 @@ use crate::app::worker::runner::spawn_wsl_worker;
 use crate::app::{AppState, Modal};
 use crate::ui;
 use crate::ui::Component;
-use crate::wsl::WSLProcessService;
+use crate::wsl::{MockWSLService, WSLProcessService, WSLService};
 use crossterm::event::{Event, EventStream, KeyCode, KeyEventKind};
 use crossterm::execute;
 use crossterm::terminal::{
@@ -22,11 +22,23 @@ use tokio::sync::mpsc;
 use tokio::time;
 use tokio_stream::StreamExt;
 
+fn make_backend() -> std::sync::Arc<dyn WSLService> {
+    let force_mock = std::env::var("LAZYWSL_MOCK")
+        .map(|v| v != "0" && !v.is_empty())
+        .unwrap_or(false);
+
+    if cfg!(windows) && !force_mock {
+        std::sync::Arc::new(WSLProcessService::new())
+    } else {
+        std::sync::Arc::new(MockWSLService::new())
+    }
+}
+
 pub async fn run_tui() -> io::Result<()> {
     let (cmd_tx, cmd_rx) = mpsc::channel::<WorkerCmd>(32);
     let (evt_tx, mut evt_rx) = mpsc::channel::<WorkerEvent>(128);
 
-    let wsl = std::sync::Arc::new(WSLProcessService::new());
+    let wsl = make_backend();
     let _worker = spawn_wsl_worker(cmd_rx, evt_tx, wsl);
 
     enable_raw_mode()?;
