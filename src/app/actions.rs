@@ -22,6 +22,7 @@ pub enum AppAction {
     ClonePrompt,
     RollBackPrompt,
     SnapshotPrompt,
+    SnapshotManagerPrompt,
 }
 
 pub fn map_key(code: KeyCode) -> AppAction {
@@ -46,6 +47,7 @@ pub fn map_key(code: KeyCode) -> AppAction {
         KeyCode::Char('n') | KeyCode::Char('N') => AppAction::ClonePrompt,
         KeyCode::Char('b') | KeyCode::Char('B') => AppAction::RollBackPrompt,
         KeyCode::Char('z') | KeyCode::Char('Z') => AppAction::SnapshotPrompt,
+        KeyCode::Char('S') => AppAction::SnapshotManagerPrompt,
         _ => AppAction::Ignore,
     }
 }
