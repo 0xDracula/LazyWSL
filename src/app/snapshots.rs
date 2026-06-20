@@ -132,6 +132,14 @@ pub fn delete_snapshot(path: &std::path::Path) -> std::io::Result<u64> {
     Ok(size)
 }
 
+pub fn total_snapshot_size() -> u64 {
+    list_snapshot_distros()
+        .iter()
+        .flat_map(|d| list_snapshot_infos(d))
+        .map(|s| s.size_bytes)
+        .sum()
+}
+
 pub fn prune_snapshots(distro: &str, keep: usize) -> std::io::Result<(usize, u64)> {
     let infos = list_snapshot_infos(distro);
 
