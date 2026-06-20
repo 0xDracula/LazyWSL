@@ -382,14 +382,25 @@ impl ModalComponent {
                     }
 
                     KeyCode::Char('c') if finished => {
-                        let mut clipboard = arboard::Clipboard::new().unwrap();
-                        let _ = clipboard.set_text(&output);
-                        state.notify(
-                            "Output copied to clipboard".to_string(),
-                            Level::Info,
-                            Anchor::TopRight,
-                            2,
-                        );
+                        match arboard::Clipboard::new() {
+                            Ok(mut clipboard) => {
+                                let _ = clipboard.set_text(&output);
+                                state.notify(
+                                    "Output copied to clipboard".to_string(),
+                                    Level::Info,
+                                    Anchor::TopRight,
+                                    2,
+                                );
+                            }
+                            Err(e) => {
+                                state.notify(
+                                    format!("Clipboard unavailable: {e}"),
+                                    Level::Error,
+                                    Anchor::TopRight,
+                                    2,
+                                );
+                            }
+                        }
                         state.modal = Modal::ActionOutput {
                             distro,
                             action_name,
@@ -481,7 +492,7 @@ impl ModalComponent {
                     let export_dir = base.join("exports");
                     let distros_dir = base.join("distros");
 
-                    if let Err(e) = fs::create_dir_all(&export_dir) {
+                    if let Err(_) = fs::create_dir_all(&export_dir) {
                         state.notify(
                             "Failed to create export dir".to_string(),
                             Level::Error,
@@ -492,7 +503,7 @@ impl ModalComponent {
                         return ControlFlow::Continue(());
                     };
 
-                    if let Err(e) = fs::create_dir_all(&distros_dir) {
+                    if let Err(_) = fs::create_dir_all(&distros_dir) {
                         state.notify(
                             "Failed to create distros dir".to_string(),
                             Level::Error,
