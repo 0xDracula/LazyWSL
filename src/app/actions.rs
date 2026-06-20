@@ -34,7 +34,7 @@ pub fn map_key(code: KeyCode) -> AppAction {
         KeyCode::Char('t') | KeyCode::Char('T') => AppAction::Terminate,
         KeyCode::Char('d') | KeyCode::Char('D') => AppAction::SetDefault,
         KeyCode::Char('u') | KeyCode::Char('U') => AppAction::UnregisterPrompt,
-        KeyCode::Char('s') | KeyCode::Char('S') => AppAction::ShutdownPrompt,
+        KeyCode::Char('s') => AppAction::ShutdownPrompt,
         KeyCode::Char('e') | KeyCode::Char('E') => AppAction::ExportPrompt,
         KeyCode::Char('i') | KeyCode::Char('I') => AppAction::ImportPrompt,
         KeyCode::Char('a') | KeyCode::Char('A') => AppAction::CustomActionsPrompt,

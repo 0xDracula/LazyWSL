@@ -1,4 +1,4 @@
-use crate::app::{AppState, Modal};
+use crate::app::{AppState, Modal, snapshots};
 use crate::ui::screens::help::render_help;
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
@@ -379,5 +379,155 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
             frame.render_widget(Clear, pop);
             frame.render_widget(para, pop);
         }
+        Modal::SnapshotManager {
+            distros,
+            distro_idx,
+            snapshots,
+            snap_idx,
+            focus_right,
+        } => {
+            let popup = centered_rect(85, 70, frame.area());
+            frame.render_widget(Clear, popup);
+
+            let outer = Block::default()
+                .borders(Borders::ALL)
+                .title(" Snapshot Manager ");
+
+            let inner = outer.inner(popup);
+            frame.render_widget(outer, popup);
+
+            let cols = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Percentage(50), Constraint::Percentage(65)])
+                .split(inner);
+
+            let mut left_lines = vec![];
+            for (i, d) in distros.iter().enumerate() {
+                let total = snapshots::distro_snaphost_size(d);
+                let selected = i == *distro_idx;
+                let style = if selected && !*focus_right {
+                    Style::default()
+                        .fg(Color::Black)
+                        .bg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD)
+                } else if selected {
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(Color::White)
+                };
+                let marker = if selected { "> " } else { " " };
+                left_lines.push(Line::from(vec![
+                    Span::styled(marker.to_string(), style),
+                    Span::styled(d.clone(), style),
+                    Span::styled(
+                        format!("  ({})", snapshots::format_size(total)),
+                        Style::default().fg(Color::DarkGray),
+                    ),
+                ]));
+            }
+
+            let left = Paragraph::new(left_lines)
+                .block(Block::default().borders(Borders::ALL).title(" Dsitro "));
+            frame.render_widget(left, cols[0]);
+
+            let mut right_lines = vec![];
+            if snapshots.is_empty() {
+                right_lines.push(Line::from(Span::styled(
+                    "No snapshots for this distro.",
+                    Style::default().fg(Color::DarkGray),
+                )));
+            } else {
+                for (i, s) in snapshots.iter().enumerate() {
+                    let selected = i == *snap_idx;
+                    let style = if selected && *focus_right {
+                        Style::default()
+                            .fg(Color::Black)
+                            .bg(Color::Cyan)
+                            .add_modifier(Modifier::BOLD)
+                    } else if selected {
+                        Style::default().fg(Color::Cyan)
+                    } else {
+                        Style::default().fg(Color::White)
+                    };
+
+                    let marker = if selected { "> " } else { " " };
+
+                    let age = s
+                        .modified_secs
+                        .map(format_age)
+                        .unwrap_or_else(|| "?".to_string());
+
+                    right_lines.push(Line::from(vec![
+                        Span::styled(marker.to_string(), style),
+                        Span::styled(s.file_name.clone(), style),
+                        Span::styled(
+                            format!("  {} {}", snapshots::format_size(s.size_bytes), age),
+                            Style::default().fg(Color::DarkGray),
+                        ),
+                    ]));
+                }
+            }
+            let total = snapshots::total_snapshot_size();
+            right_lines.push(Line::from(""));
+            right_lines.push(Line::from(Span::styled(
+                format!(
+                    "Total snapshot disk usage: {}",
+                    snapshots::format_size(total)
+                ),
+                Style::default().fg(Color::Yellow),
+            )));
+            let right = Paragraph::new(right_lines)
+                .block(Block::default().borders(Borders::ALL).title(" Snapshots "));
+
+            frame.render_widget(right, cols[1]);
+        }
+        Modal::ConfirmDeleteSnapshot { snapshot, .. } => {
+            let pop = centered_rect(70, 25, frame.area());
+            let name = snapshot
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or("<snapshot>");
+
+            let msg =
+                format!("Delete snapshot: `{name}`?\n\nThis permanently removes the snapshot");
+            let para = Paragraph::new(msg).block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title(" Confirm Delete? "),
+            );
+            frame.render_widget(Clear, pop);
+            frame.render_widget(para, pop);
+        }
+
+        Modal::ConfirmPruneSnapshots { distro, keep, .. } => {
+            let pop = centered_rect(70, 25, frame.area());
+            let msg = format!(
+                "Prune snapshots for `{distro}`?\n\nKeeps the newest {keep}, deletes the rest!\n\nPress y to confirm, n to cancel"
+            );
+            let para = Paragraph::new(msg).block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title(" Confirm Prune "),
+            );
+            frame.render_widget(Clear, pop);
+            frame.render_widget(para, pop);
+        }
+    }
+}
+
+fn format_age(modified_secs: u64) -> String {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(modified_secs);
+
+    let delta = now.saturating_sub(modified_secs);
+    match delta {
+        0..=59 => "just now".to_string(),
+        60..=3599 => format!("{}m ago", delta / 60),
+        3600..=86399 => format!("{}h ago", delta / 3600),
+        _ => format!("{}d ago", delta / 86400),
     }
 }
