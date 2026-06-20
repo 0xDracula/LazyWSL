@@ -17,6 +17,29 @@ use tokio::sync::mpsc;
 
 pub struct ModalComponent;
 
+fn reopen_snapshot_manager(state: &mut AppState, _old_distros: Vec<String>, distro_idx: usize) {
+    let distros = snapshots::list_snapshot_distros();
+    if distros.is_empty() {
+        state.modal = Modal::None;
+        return;
+    }
+
+    let distro_idx = distro_idx.min(distros.len() - 1);
+    let snaps = snapshots::list_snapshot_infos(&distros[distro_idx]);
+    let has_snaps = !snaps.is_empty();
+    state.modal = Modal::SnapshotManager {
+        distros,
+        distro_idx,
+        snapshots: snaps,
+        snap_idx: 0,
+        focus_right: has_snaps,
+    };
+}
+
+fn snaps_is_empty(distro: &str) -> bool {
+    snapshots::list_snapshot_infos(distro).is_empty()
+}
+
 impl ModalComponent {
     pub fn new() -> Self {
         ModalComponent
@@ -699,7 +722,224 @@ impl ModalComponent {
                     ControlFlow::Continue(())
                 }
             },
+            Modal::SnapshotManager {
+                distros,
+                mut distro_idx,
+                mut snapshots,
+                mut snap_idx,
+                mut focus_right,
+            } => match code {
+                KeyCode::Esc => {
+                    state.modal = Modal::None;
+                    ControlFlow::Continue(())
+                }
 
+                KeyCode::Left | KeyCode::Char('h') => {
+                    focus_right = false;
+                    state.modal = Modal::SnapshotManager {
+                        distros,
+                        distro_idx,
+                        snapshots,
+                        snap_idx,
+                        focus_right,
+                    };
+                    ControlFlow::Continue(())
+                }
+
+                KeyCode::Right | KeyCode::Char('l') => {
+                    focus_right = true;
+                    state.modal = Modal::SnapshotManager {
+                        distros,
+                        distro_idx,
+                        snapshots,
+                        snap_idx,
+                        focus_right,
+                    };
+                    ControlFlow::Continue(())
+                }
+
+                KeyCode::Up => {
+                    if focus_right {
+                        snap_idx = snap_idx.saturating_sub(1);
+                    } else {
+                        distro_idx = distro_idx.saturating_sub(1);
+                        snapshots = snapshots::list_snapshot_infos(&distros[distro_idx]);
+                        snap_idx = 0;
+                    }
+                    state.modal = Modal::SnapshotManager {
+                        distros,
+                        distro_idx,
+                        snapshots,
+                        snap_idx,
+                        focus_right,
+                    };
+                    ControlFlow::Continue(())
+                }
+
+                KeyCode::Down => {
+                    if focus_right {
+                        if !snapshots.is_empty() {
+                            snap_idx = (snap_idx + 1).min(snapshots.len() - 1);
+                        }
+                    } else {
+                        if distro_idx + 1 < distros.len() {
+                            distro_idx += 1;
+                        }
+                        snapshots = snapshots::list_snapshot_infos(&distros[distro_idx]);
+                        snap_idx = 0;
+                    }
+
+                    state.modal = Modal::SnapshotManager {
+                        distros,
+                        distro_idx,
+                        snapshots,
+                        snap_idx,
+                        focus_right,
+                    };
+                    ControlFlow::Continue(())
+                }
+
+                KeyCode::Char('x') | KeyCode::Char('d') => {
+                    if let Some(info) = snapshots.get(snap_idx).cloned() {
+                        state.modal = Modal::ConfirmDeleteSnapshot {
+                            distros,
+                            distro_idx,
+                            snapshot: info.path,
+                        };
+                    } else {
+                        state.modal = Modal::SnapshotManager {
+                            distros,
+                            distro_idx,
+                            snapshots,
+                            snap_idx,
+                            focus_right,
+                        };
+                    }
+                    ControlFlow::Continue(())
+                }
+
+                KeyCode::Char('p') => {
+                    let distro = distros[distro_idx].clone();
+                    state.modal = Modal::ConfirmPruneSnapshots {
+                        distros,
+                        distro_idx,
+                        distro,
+                        keep: 3,
+                    };
+                    ControlFlow::Continue(())
+                }
+
+                KeyCode::Enter => {
+                    if let Some(info) = snapshots.get(snap_idx).cloned() {
+                        let distro = distros[distro_idx].clone();
+                        let exists = state.distributions.iter().any(|d| d.name == distro);
+                        state.modal = Modal::ConfirmRollBack {
+                            distro,
+                            snapshot: info.path,
+                            exists,
+                        };
+                    } else {
+                        state.modal = Modal::SnapshotManager {
+                            distros,
+                            distro_idx,
+                            snapshots,
+                            snap_idx,
+                            focus_right,
+                        };
+                    }
+                    ControlFlow::Continue(())
+                }
+
+                _ => {
+                    state.modal = Modal::SnapshotManager {
+                        distros,
+                        distro_idx,
+                        snapshots,
+                        snap_idx,
+                        focus_right,
+                    };
+                    ControlFlow::Continue(())
+                }
+            },
+            Modal::ConfirmDeleteSnapshot {
+                distros,
+                distro_idx,
+                snapshot,
+            } => match code {
+                KeyCode::Char('y') => {
+                    match snapshots::delete_snapshot(&snapshot) {
+                        Ok(freed) => state.notify(
+                            format!("Deleted snapshot ({} freed)", snapshots::format_size(freed)),
+                            Level::Info,
+                            Anchor::TopRight,
+                            2,
+                        ),
+                        Err(e) => state.notify(
+                            format!("Delete failed: {e}"),
+                            Level::Error,
+                            Anchor::TopRight,
+                            3,
+                        ),
+                    }
+                    reopen_snapshot_manager(state, distros, distro_idx);
+                    ControlFlow::Continue(())
+                }
+                KeyCode::Char('n') | KeyCode::Esc => {
+                    reopen_snapshot_manager(state, distros, distro_idx);
+                    ControlFlow::Continue(())
+                }
+                KeyCode::Char('q') => ControlFlow::Break(()),
+                _ => {
+                    state.modal = Modal::ConfirmDeleteSnapshot {
+                        distros,
+                        distro_idx,
+                        snapshot,
+                    };
+                    ControlFlow::Continue(())
+                }
+            },
+            Modal::ConfirmPruneSnapshots {
+                distros,
+                distro_idx,
+                distro,
+                keep,
+            } => match code {
+                KeyCode::Char('y') => {
+                    match snapshots::prune_snapshots(&distro, keep) {
+                        Ok((n, freed)) => state.notify(
+                            format!(
+                                "Pruned {n} snapshots(s), {} freed",
+                                snapshots::format_size(freed)
+                            ),
+                            Level::Info,
+                            Anchor::TopRight,
+                            3,
+                        ),
+                        Err(e) => state.notify(
+                            format!("Prune failed: {e}"),
+                            Level::Error,
+                            Anchor::TopRight,
+                            3,
+                        ),
+                    }
+                    reopen_snapshot_manager(state, distros, distro_idx);
+                    ControlFlow::Continue(())
+                }
+                KeyCode::Char('n') | KeyCode::Esc => {
+                    reopen_snapshot_manager(state, distros, distro_idx);
+                    ControlFlow::Continue(())
+                }
+                KeyCode::Char('q') => ControlFlow::Break(()),
+                _ => {
+                    state.modal = Modal::ConfirmPruneSnapshots {
+                        distros,
+                        distro_idx,
+                        distro,
+                        keep,
+                    };
+                    ControlFlow::Continue(())
+                }
+            },
             Modal::None => ControlFlow::Continue(()),
         }
     }

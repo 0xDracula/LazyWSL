@@ -43,6 +43,7 @@ pub fn render_help(frame: &mut Frame<'_>) {
         keybind("n", "Clone Distro"),
         keybind("z", "Snapshot Distro"),
         keybind("b", "Rollback Distro"),
+        keybind("S", "Snapshot Management"),
         keybind("Space", "Multi Select"),
         Line::from(""),
         Line::from(Span::styled(

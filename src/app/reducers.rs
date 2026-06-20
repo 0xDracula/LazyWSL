@@ -278,6 +278,28 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
                 }
             }
         }
+        AppAction::SnapshotManagerPrompt => {
+            let distros = snapshots::list_snapshot_distros();
+            if distros.is_empty() {
+                state.notify(
+                    "No snapshots yet! - press z to create one".to_string(),
+                    Level::Info,
+                    Anchor::TopRight,
+                    2,
+                );
+                return vec![];
+            }
+            let distro_idx = 0;
+            let snapshots = snapshots::list_snapshot_infos(&distros[distro_idx]);
+            state.modal = Modal::SnapshotManager {
+                distros,
+                distro_idx,
+                snapshots,
+                snap_idx: 0,
+                focus_right: false,
+            };
+            vec![]
+        }
         AppAction::Ignore => vec![],
     }
 }

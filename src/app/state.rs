@@ -1,3 +1,4 @@
+use crate::app::snapshots::SnapshotInfo;
 use crate::config::CustomActions;
 use crate::wsl::Distribution;
 use ratatui::style::{Color, Style};
@@ -81,6 +82,24 @@ pub enum Modal {
         distro: String,
         snapshot: PathBuf,
         exists: bool,
+    },
+    SnapshotManager {
+        distros: Vec<String>,
+        distro_idx: usize,
+        snapshots: Vec<SnapshotInfo>,
+        snap_idx: usize,
+        focus_right: bool,
+    },
+    ConfirmDeleteSnapshot {
+        distros: Vec<String>,
+        distro_idx: usize,
+        snapshot: PathBuf,
+    },
+    ConfirmPruneSnapshots {
+        distros: Vec<String>,
+        distro_idx: usize,
+        distro: String,
+        keep: usize,
     },
 }
 
