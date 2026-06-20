@@ -389,9 +389,9 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
             let popup = centered_rect(85, 70, frame.area());
             frame.render_widget(Clear, popup);
 
-            let outer = Block::default()
-                .borders(Borders::ALL)
-                .title(" Snapshot Manager ");
+            let outer = Block::default().borders(Borders::ALL).title(
+                " Snapshot Manager  (←/→ panes · x delete · p prune · Enter rollback · Esc) ",
+            );
 
             let inner = outer.inner(popup);
             frame.render_widget(outer, popup);
