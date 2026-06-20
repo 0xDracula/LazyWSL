@@ -151,8 +151,18 @@ impl WSLService for MockWSLService {
         Ok(())
     }
 
-    async fn export(&self, distro: &str, _output: &Path) -> Result<(), WSLError> {
+    async fn export(&self, distro: &str, output: &Path) -> Result<(), WSLError> {
         self.ensure_exists(distro)?;
+        if let Some(parent) = output.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+
+        std::fs::write(output, format!("mock for snapshot distro\n")).map_err(|e| {
+            WSLError::ProcessFailed {
+                code: 1,
+                stderr: e.to_string(),
+            }
+        })?;
         Ok(())
     }
 
