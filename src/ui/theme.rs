@@ -1,4 +1,8 @@
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::{
+    style::{Color, Modifier, Style},
+    text::{Line, Span},
+    widgets::{Block, BorderType, Borders},
+};
 
 use crate::wsl::{
     DistroState::{self, Stopped},
@@ -151,6 +155,48 @@ pub fn format_size_short(bytes: u64) -> String {
 
 pub fn version_label(v: &WslVersion) -> String {
     format!("WSL {v}")
+}
+
+pub fn modal_block(title: &str) -> Block<'static> {
+    Block::default()
+        .title(Span::styled(
+            format!(" {title} "),
+            Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
+        ))
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(BORDER_ACTIVE))
+}
+
+pub fn modal_block_warn(title: &str) -> Block<'static> {
+    Block::default()
+        .title(Span::styled(
+            format!(" {title} "),
+            Style::default().fg(INSTALLING).add_modifier(Modifier::BOLD),
+        ))
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(INSTALLING))
+}
+
+pub fn modal_selected() -> Style {
+    Style::default()
+        .fg(BG)
+        .bg(ACCENT)
+        .add_modifier(Modifier::BOLD)
+}
+
+pub fn modal_row() -> Style {
+    Style::default().fg(TEXT)
+}
+
+pub fn yes_no<'a>() -> Line<'a> {
+    Line::from(vec![
+        Span::styled(" y ", chip(RUNNING)),
+        Span::styled(" confirm ", dim()),
+        Span::styled(" n ", chip(ERROR)),
+        Span::styled(" cancel ", dim()),
+    ])
 }
 
 #[cfg(test)]
