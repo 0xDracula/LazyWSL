@@ -59,6 +59,7 @@ pub fn render(frame: &mut Frame<'_>, state: &AppState, area: Rect) {
             Paragraph::new(Span::styled("disk 14d ", theme::dim())),
             labelled[0],
         );
+        frame.render_widget(spark, labelled[1]);
     }
 }
 

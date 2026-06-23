@@ -61,9 +61,6 @@ pub async fn run_tui() -> io::Result<()> {
 
     let mut events = EventStream::new();
 
-    use std::time::Instant;
-
-    let mut last_tick = Instant::now();
     let mut tick = time::interval(Duration::from_millis(16));
 
     let run_inner = async {

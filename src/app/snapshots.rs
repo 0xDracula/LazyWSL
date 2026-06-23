@@ -12,10 +12,10 @@ pub fn list_snapshot_distros() -> Vec<String> {
     if let Ok(rd) = fs::read_dir(root) {
         for e in rd.flatten() {
             let p = e.path();
-            if p.is_dir() {
-                if let Some(name) = p.file_name().and_then(|s| s.to_str()) {
-                    out.push(name.to_string());
-                }
+            if p.is_dir()
+                && let Some(name) = p.file_name().and_then(|s| s.to_str())
+            {
+                out.push(name.to_string());
             }
         }
     }
@@ -54,12 +54,11 @@ pub fn next_snapshot_path(distro: &str) -> std::io::Result<PathBuf> {
             let name = e.file_name();
             let name = name.to_string_lossy();
 
-            if let Some(rest) = name.strip_prefix(&format!("{date}_")) {
-                if let Some(n_str) = rest.strip_suffix(".tar") {
-                    if let Ok(n) = n_str.parse::<u32>() {
-                        max_n = max_n.max(n);
-                    }
-                }
+            if let Some(rest) = name.strip_prefix(&format!("{date}_"))
+                && let Some(n_str) = rest.strip_suffix(".tar")
+                && let Ok(n) = n_str.parse::<u32>()
+            {
+                max_n = max_n.max(n);
             }
         }
     }
@@ -178,12 +177,11 @@ mod tests {
             for e in rd.flatten() {
                 let name = e.file_name();
                 let name = name.to_string_lossy();
-                if let Some(rest) = name.strip_prefix(&format!("{date}_")) {
-                    if let Some(n_str) = rest.strip_suffix(".tar") {
-                        if let Ok(n) = n_str.parse::<u32>() {
-                            max_n = max_n.max(n);
-                        }
-                    }
+                if let Some(rest) = name.strip_prefix(&format!("{date}_"))
+                    && let Some(n_str) = rest.strip_suffix(".tar")
+                    && let Ok(n) = n_str.parse::<u32>()
+                {
+                    max_n = max_n.max(n);
                 }
             }
         }

@@ -6,7 +6,7 @@ use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::prelude::Span;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::Line;
-use ratatui::widgets::{Block, Borders, Clear, FrameExt, Padding, Paragraph};
+use ratatui::widgets::{Clear, FrameExt, Padding, Paragraph};
 
 pub fn centered_rect(x: u16, y: u16, area: Rect) -> Rect {
     let vertical = Layout::default()

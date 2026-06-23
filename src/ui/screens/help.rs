@@ -4,7 +4,7 @@ use ratatui::Frame;
 use ratatui::layout::Alignment;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph};
+use ratatui::widgets::{Clear, Padding, Paragraph};
 
 fn keybind(key: &str, desc: &str, color: Color) -> Line<'static> {
     Line::from(vec![
