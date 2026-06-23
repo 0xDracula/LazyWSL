@@ -157,7 +157,7 @@ impl WSLService for MockWSLService {
             let _ = std::fs::create_dir_all(parent);
         }
 
-        std::fs::write(output, format!("mock for snapshot distro\n")).map_err(|e| {
+        std::fs::write(output, "mock for snapshot distro\n").map_err(|e| {
             WSLError::ProcessFailed {
                 code: 1,
                 stderr: e.to_string(),

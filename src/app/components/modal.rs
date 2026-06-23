@@ -36,10 +36,6 @@ fn reopen_snapshot_manager(state: &mut AppState, _old_distros: Vec<String>, dist
     };
 }
 
-fn snaps_is_empty(distro: &str) -> bool {
-    snapshots::list_snapshot_infos(distro).is_empty()
-}
-
 impl ModalComponent {
     pub fn new() -> Self {
         ModalComponent
@@ -492,7 +488,7 @@ impl ModalComponent {
                     let export_dir = base.join("exports");
                     let distros_dir = base.join("distros");
 
-                    if let Err(_) = fs::create_dir_all(&export_dir) {
+                    if fs::create_dir_all(&export_dir).is_err() {
                         state.notify(
                             "Failed to create export dir".to_string(),
                             Level::Error,
@@ -503,7 +499,7 @@ impl ModalComponent {
                         return ControlFlow::Continue(());
                     };
 
-                    if let Err(_) = fs::create_dir_all(&distros_dir) {
+                    if fs::create_dir_all(&distros_dir).is_err() {
                         state.notify(
                             "Failed to create distros dir".to_string(),
                             Level::Error,
@@ -584,7 +580,7 @@ impl ModalComponent {
                 }
 
                 KeyCode::Enter => {
-                    if let Some(distro) = distros.get(selected).clone() {
+                    if let Some(distro) = distros.get(selected).cloned() {
                         let snaps = snapshots::list_snapshots_for_distro(&distro);
                         if snaps.is_empty() {
                             state.notify(

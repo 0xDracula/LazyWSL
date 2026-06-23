@@ -60,17 +60,12 @@ impl Toasts {
     }
 
     pub fn tick(&mut self) {
-        if let Some(t) = &self.current {
-            if t.expires_at <= Instant::now() {
-                self.current = None;
-            }
+        if let Some(t) = &self.current
+            && t.expires_at <= Instant::now()
+        {
+            self.current = None;
         }
     }
-
-    pub fn is_empty(&self) -> bool {
-        self.current.is_none()
-    }
-
     pub fn latest(&self) -> Option<&Toast> {
         self.current.as_ref()
     }

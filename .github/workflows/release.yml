@@ -18,6 +18,14 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+    
+      - name: Test
+        run: cargo test --release
 
       - name: Build Release
         run: cargo build --release
@@ -27,8 +35,11 @@ jobs:
         run: |
           mkdir dist
           copy target\release\LazyWSL.exe dist\lazywsl-windows-x86_64.exe
+          $hash = (Get-FileHash dist\lazywsl-windows-x86_64.exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  lazywsl-windows-x86_64.exe" | Out-File -Encoding ascii dist\lazywsl-windows-x86_64.exe.sha256
 
       - name: Upload Release
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
+          generate_release_notes: true

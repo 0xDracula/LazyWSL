@@ -1,16 +1,15 @@
 use ratatui::{
     style::{Color, Modifier, Style},
-    text::{Line, Span},
+    text::Span,
     widgets::{Block, BorderType, Borders},
 };
 
 use crate::wsl::{
-    DistroState::{self, Stopped},
+    DistroState::{self},
     WslVersion,
 };
 
 pub const BG: Color = Color::Rgb(13, 17, 23);
-pub const SURFACE: Color = Color::Rgb(22, 27, 34);
 pub const SELECT_BG: Color = Color::Rgb(31, 41, 55);
 
 pub const BORDER: Color = Color::Rgb(48, 54, 61);
@@ -86,10 +85,6 @@ pub fn label() -> Style {
 
 pub fn value() -> Style {
     Style::default().fg(TEXT)
-}
-
-pub fn accent_bold() -> Style {
-    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD)
 }
 
 pub fn border() -> Style {
@@ -188,15 +183,6 @@ pub fn modal_selected() -> Style {
 
 pub fn modal_row() -> Style {
     Style::default().fg(TEXT)
-}
-
-pub fn yes_no<'a>() -> Line<'a> {
-    Line::from(vec![
-        Span::styled(" y ", chip(RUNNING)),
-        Span::styled(" confirm ", dim()),
-        Span::styled(" n ", chip(ERROR)),
-        Span::styled(" cancel ", dim()),
-    ])
 }
 
 #[cfg(test)]
