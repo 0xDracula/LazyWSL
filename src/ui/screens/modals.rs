@@ -374,7 +374,7 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
 
             let mut left_lines = vec![];
             for (i, d) in distros.iter().enumerate() {
-                let total = snapshots::distro_snaphost_size(d);
+                let total = snapshots::distro_snapshot_size(d);
                 let selected = i == *distro_idx;
                 let style = if selected && !*focus_right {
                     theme::modal_selected()

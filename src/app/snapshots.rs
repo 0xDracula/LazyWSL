@@ -111,15 +111,7 @@ pub fn list_snapshot_infos(distro: &str) -> Vec<SnapshotInfo> {
     out
 }
 
-pub fn distro_snapshot_size() -> u64 {
-    list_snapshot_distros()
-        .iter()
-        .flat_map(|d| list_snapshot_infos(d))
-        .map(|s| s.size_bytes)
-        .sum()
-}
-
-pub fn distro_snaphost_size(distro: &str) -> u64 {
+pub fn distro_snapshot_size(distro: &str) -> u64 {
     list_snapshot_infos(distro)
         .iter()
         .map(|s| s.size_bytes)
@@ -230,7 +222,7 @@ mod tests {
         assert_eq!(max_index_in(&tmp, "2026-06-19"), 0);
         fs::remove_dir_all(&tmp).ok();
     }
-  
+
     #[test]
     fn format_size_units() {
         assert_eq!(format_size(512), "512 B");
