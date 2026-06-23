@@ -31,6 +31,4 @@ pub fn render_main(frame: &mut Frame<'_>, state: &mut AppState) {
     footer::render(frame, state, chunks[3]);
 
     let _ = theme::BG;
-
-    state.notifications.render(frame, frame.area());
 }

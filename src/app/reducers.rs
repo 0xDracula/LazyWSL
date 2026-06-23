@@ -2,10 +2,10 @@ use crate::app::actions::AppAction;
 use crate::app::worker::commands::WorkerCmd;
 use crate::app::{AppState, Modal, snapshots};
 use crate::config;
+use crate::ui::{Anchor, Level};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::{Block, Borders, HighlightSpacing};
 use ratatui_explorer::{File, FileExplorer, FileExplorerBuilder, Theme};
-use ratatui_notifications::{Anchor, Level};
 
 pub fn explorer_theme() -> Theme {
     Theme::default()
@@ -171,12 +171,7 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
             state.selected = 0;
             state.clamp_selection();
             state.search_active = false;
-            state.notify(
-                "Cancelled!".to_string(),
-                Level::Info,
-                ratatui_notifications::Anchor::TopCenter,
-                2,
-            );
+            state.notify("Cancelled!".to_string(), Level::Info, Anchor::TopCenter, 2);
             vec![]
         }
         AppAction::TogglePin => {

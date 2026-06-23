@@ -27,6 +27,14 @@ pub fn render(frame: &mut Frame<'_>, state: &AppState, area: Rect) {
         .sum::<u64>()
         + snapshots::total_snapshot_size();
 
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(theme::border_active());
+
+    let innner = block.inner(area);
+    frame.render_widget(block, area);
+
     let line = Line::from(vec![
         Span::styled(" ▰ ▰ ▰  ", Style::default().fg(theme::ACCENT_ALT)),
         Span::styled(
@@ -51,11 +59,22 @@ pub fn render(frame: &mut Frame<'_>, state: &AppState, area: Rect) {
         ),
     ]);
 
-    let para = Paragraph::new(line).alignment(Alignment::Left).block(
-        Block::default()
-            .borders(Borders::ALL)
-            .border_type(BorderType::Rounded)
-            .border_style(theme::border_active()),
-    );
-    frame.render_widget(para, area);
+    frame.render_widget(Paragraph::new(line).alignment(Alignment::Left), innner);
+
+    if let Some(toast) = state.notifications.latest() {
+        let color = toast.level.color();
+        let right = Line::from(vec![
+            Span::styled(
+                format!("{} ", toast.level.icon()),
+                Style::default().fg(color),
+            ),
+            Span::styled(
+                toast.msg.clone(),
+                Style::default().fg(color).add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" "),
+        ]);
+
+        frame.render_widget(Paragraph::new(right).alignment(Alignment::Right), innner);
+    }
 }
