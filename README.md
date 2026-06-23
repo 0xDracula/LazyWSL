@@ -14,7 +14,7 @@
   Built with Rust + Ratatui. Inspired by wsl-ui, LazyGit, and LazyDocker.
 </p>
 
-![overview](https://cdn.hackclub.com/019e3232-c684-7a20-a12d-f4c01f244e85/Screenshot%202026-05-16%20221031.png)
+![overview](https://cdn.hackclub.com/019ef4a5-ca13-785f-b419-2de3830bdc48/image%20(9).png)
 
 ## Why LazyWSL?
 
