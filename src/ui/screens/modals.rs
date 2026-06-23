@@ -1,11 +1,12 @@
 use crate::app::{AppState, Modal, snapshots};
 use crate::ui::screens::help::render_help;
+use crate::ui::theme;
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::prelude::Span;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::Line;
-use ratatui::widgets::{Block, Borders, Clear, FrameExt, Paragraph};
+use ratatui::widgets::{Block, Borders, Clear, FrameExt, Padding, Paragraph};
 
 pub fn centered_rect(x: u16, y: u16, area: Rect) -> Rect {
     let vertical = Layout::default()
@@ -45,8 +46,7 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
                     names.len()
                 )
             };
-            let para = Paragraph::new(msg)
-                .block(Block::default().borders(Borders::ALL).title(" Confirm "));
+            let para = Paragraph::new(msg).block(theme::modal_block_warn("Confirm Unregister"));
             frame.render_widget(Clear, pop);
             frame.render_widget(para, pop);
         }
@@ -54,8 +54,7 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
         Modal::ConfirmShutdown => {
             let pop = centered_rect(60, 25, frame.area());
             let msg = "Shut down the entire WSL VMs?\n\nPress y to confirm, n to cancel.";
-            let para = Paragraph::new(msg)
-                .block(Block::default().borders(Borders::ALL).title(" Confirm "));
+            let para = Paragraph::new(msg).block(theme::modal_block_warn("Confirm Shutdown"));
             frame.render_widget(Clear, pop);
             frame.render_widget(para, pop);
         }
@@ -69,7 +68,7 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
         Modal::ImportNameInput { input, .. } => {
             let pop_up = centered_rect(50, 20, frame.area());
             let paragraph = Paragraph::new(format!("Distro name: \n\n{}", input))
-                .block(Block::default().borders(Borders::ALL).title(" Import "));
+                .block(theme::modal_block("Import"));
             frame.render_widget(Clear, pop_up);
             frame.render_widget(paragraph, pop_up);
         }
@@ -148,11 +147,7 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
                 }),
             )));
 
-            let para = Paragraph::new(output_lines).block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title(" Action Output "),
-            );
+            let para = Paragraph::new(output_lines).block(theme::modal_block("Action Output"));
             frame.render_widget(Clear, popup);
             frame.render_widget(para, popup);
         }
@@ -179,12 +174,9 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
             for (i, action) in actions.iter().enumerate() {
                 let marker = if i == *selected { "> " } else { " " };
                 let style = if i == *selected {
-                    Style::default()
-                        .fg(Color::Black)
-                        .bg(Color::Cyan)
-                        .add_modifier(Modifier::BOLD)
+                    theme::modal_selected()
                 } else {
-                    Style::default().fg(Color::White)
+                    theme::modal_row()
                 };
 
                 lines.push(Line::from(vec![
@@ -204,11 +196,7 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
                 Style::default().fg(Color::DarkGray),
             )));
 
-            let para = Paragraph::new(lines).block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title(" Custom Actions "),
-            );
+            let para = Paragraph::new(lines).block(theme::modal_block("Custom Actions"));
 
             frame.render_widget(Clear, popup);
             frame.render_widget(para, popup);
@@ -242,11 +230,7 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
                 )),
             ];
 
-            let para = Paragraph::new(lines).block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title(" Clone Distro "),
-            );
+            let para = Paragraph::new(lines).block(theme::modal_block("Clone Distro"));
 
             frame.render_widget(Clear, pop_up);
             frame.render_widget(para, pop_up);
@@ -266,12 +250,9 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
             for (i, name) in distros.iter().enumerate() {
                 let marker = if i == *selected { "> " } else { " " };
                 let style = if i == *selected {
-                    Style::default()
-                        .fg(Color::Black)
-                        .bg(Color::Cyan)
-                        .add_modifier(Modifier::BOLD)
+                    theme::modal_selected()
                 } else {
-                    Style::default().fg(Color::White)
+                    theme::modal_row()
                 };
 
                 lines.push(Line::from(vec![
@@ -286,8 +267,7 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
                 Style::default().fg(Color::DarkGray),
             )));
 
-            let para = Paragraph::new(lines)
-                .block(Block::default().borders(Borders::ALL).title(" RollBack "));
+            let para = Paragraph::new(lines).block(theme::modal_block("Rollback"));
 
             frame.render_widget(Clear, popup);
             frame.render_widget(para, popup);
@@ -319,12 +299,9 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
 
                 let marker = if i == *selected { "> " } else { " " };
                 let style = if i == *selected {
-                    Style::default()
-                        .fg(Color::Black)
-                        .bg(Color::Cyan)
-                        .add_modifier(Modifier::BOLD)
+                    theme::modal_selected()
                 } else {
-                    Style::default().fg(Color::White)
+                    theme::modal_row()
                 };
 
                 lines.push(Line::from(vec![
@@ -339,11 +316,7 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
                 Style::default().fg(Color::DarkGray),
             )));
 
-            let para = Paragraph::new(lines).block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title(" Choose Snapshot "),
-            );
+            let para = Paragraph::new(lines).block(theme::modal_block("Choose snapshot"));
 
             frame.render_widget(Clear, popup);
             frame.render_widget(para, popup);
@@ -370,11 +343,7 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
                 )
             };
 
-            let para = Paragraph::new(msg).block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title(" Confirm RollBack "),
-            );
+            let para = Paragraph::new(msg).block(theme::modal_block_warn("Confirm Rollback"));
 
             frame.render_widget(Clear, pop);
             frame.render_widget(para, pop);
@@ -389,16 +358,18 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
             let popup = centered_rect(85, 70, frame.area());
             frame.render_widget(Clear, popup);
 
-            let outer = Block::default().borders(Borders::ALL).title(
+            let outer = theme::modal_block(
                 " Snapshot Manager  (←/→ panes · x delete · p prune · Enter rollback · Esc) ",
-            );
+            )
+            .padding(Padding::new(1, 1, 1, 1));
 
             let inner = outer.inner(popup);
             frame.render_widget(outer, popup);
 
             let cols = Layout::default()
                 .direction(Direction::Horizontal)
-                .constraints([Constraint::Percentage(50), Constraint::Percentage(65)])
+                .spacing(1)
+                .constraints([Constraint::Percentage(35), Constraint::Percentage(65)])
                 .split(inner);
 
             let mut left_lines = vec![];
@@ -406,16 +377,13 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
                 let total = snapshots::distro_snaphost_size(d);
                 let selected = i == *distro_idx;
                 let style = if selected && !*focus_right {
-                    Style::default()
-                        .fg(Color::Black)
-                        .bg(Color::Cyan)
-                        .add_modifier(Modifier::BOLD)
+                    theme::modal_selected()
                 } else if selected {
                     Style::default()
-                        .fg(Color::Cyan)
+                        .fg(theme::ACCENT)
                         .add_modifier(Modifier::BOLD)
                 } else {
-                    Style::default().fg(Color::White)
+                    theme::modal_row()
                 };
                 let marker = if selected { "> " } else { " " };
                 left_lines.push(Line::from(vec![
@@ -428,8 +396,11 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
                 ]));
             }
 
-            let left = Paragraph::new(left_lines)
-                .block(Block::default().borders(Borders::ALL).title(" Dsitro "));
+            let left = Paragraph::new(left_lines).block(
+                theme::modal_block("Distros")
+                    .border_style(Style::default().fg(theme::BORDER))
+                    .padding(Padding::new(1, 1, 1, 0)),
+            );
             frame.render_widget(left, cols[0]);
 
             let mut right_lines = vec![];
@@ -442,14 +413,11 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
                 for (i, s) in snapshots.iter().enumerate() {
                     let selected = i == *snap_idx;
                     let style = if selected && *focus_right {
-                        Style::default()
-                            .fg(Color::Black)
-                            .bg(Color::Cyan)
-                            .add_modifier(Modifier::BOLD)
+                        theme::modal_selected()
                     } else if selected {
-                        Style::default().fg(Color::Cyan)
+                        Style::default().fg(theme::ACCENT)
                     } else {
-                        Style::default().fg(Color::White)
+                        theme::modal_row()
                     };
 
                     let marker = if selected { "> " } else { " " };
@@ -478,8 +446,11 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
                 ),
                 Style::default().fg(Color::Yellow),
             )));
-            let right = Paragraph::new(right_lines)
-                .block(Block::default().borders(Borders::ALL).title(" Snapshots "));
+            let right = Paragraph::new(right_lines).block(
+                theme::modal_block("Snapshots")
+                    .border_style(Style::default().fg(theme::BORDER))
+                    .padding(Padding::new(1, 1, 1, 0)),
+            );
 
             frame.render_widget(right, cols[1]);
         }
@@ -492,11 +463,7 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
 
             let msg =
                 format!("Delete snapshot: `{name}`?\n\nThis permanently removes the snapshot");
-            let para = Paragraph::new(msg).block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title(" Confirm Delete? "),
-            );
+            let para = Paragraph::new(msg).block(theme::modal_block_warn("Confirm Delete"));
             frame.render_widget(Clear, pop);
             frame.render_widget(para, pop);
         }
@@ -506,11 +473,7 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
             let msg = format!(
                 "Prune snapshots for `{distro}`?\n\nKeeps the newest {keep}, deletes the rest!\n\nPress y to confirm, n to cancel"
             );
-            let para = Paragraph::new(msg).block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title(" Confirm Prune "),
-            );
+            let para = Paragraph::new(msg).block(theme::modal_block_warn("Confirm Prune"));
             frame.render_widget(Clear, pop);
             frame.render_widget(para, pop);
         }

@@ -1,20 +1,18 @@
 use crate::app::snapshots::SnapshotInfo;
 use crate::config::CustomActions;
+use crate::ui::Toasts;
 use crate::wsl::Distribution;
-use ratatui::style::{Color, Style};
 use ratatui_explorer::FileExplorer;
-use ratatui_notifications::{AutoDismiss, Notifications, Timing};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
-use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 
 pub struct AppState {
     pub distributions: Vec<Distribution>,
     pub selected: usize,
-    pub notifications: ratatui_notifications::Notifications,
+    pub notifications: Toasts,
     pub busy: bool,
     pub modal: Modal,
     pub should_quit: bool,
@@ -105,14 +103,10 @@ pub enum Modal {
 
 impl Default for AppState {
     fn default() -> Self {
-        let notifications = Notifications::new()
-            .max_concurrent(Some(5))
-            .overflow(ratatui_notifications::Overflow::DiscardOldest);
-
         Self {
             distributions: Vec::new(),
             selected: 0,
-            notifications,
+            notifications: Toasts::new(),
             busy: false,
             modal: Modal::None,
             should_quit: false,
@@ -135,28 +129,14 @@ impl AppState {
         }
     }
 
-    // TODO! fix slow animations
     pub fn notify(
         &mut self,
         msg: String,
-        level: ratatui_notifications::Level,
-        anchor: ratatui_notifications::Anchor,
+        level: crate::ui::Level,
+        _anchor: crate::ui::Anchor,
         dismiss: u64,
     ) {
-        let notif = ratatui_notifications::Notification::new(msg)
-            .level(level)
-            .anchor(anchor)
-            .auto_dismiss(AutoDismiss::After(Duration::from_secs(dismiss)))
-            .timing(
-                Timing::Fixed(Duration::from_millis(200)),
-                Timing::Fixed(Duration::from_secs(2)),
-                Timing::Fixed(Duration::from_millis(300)),
-            )
-            .border_style(Style::default().fg(Color::Cyan))
-            .build()
-            .unwrap();
-
-        let _ = self.notifications.add(notif);
+        self.notifications.push(msg, level, dismiss);
     }
 
     pub fn move_selection(&mut self, delta: isize) {

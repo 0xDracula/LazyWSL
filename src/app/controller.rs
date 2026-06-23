@@ -6,6 +6,7 @@ use crate::app::worker::runner::spawn_wsl_worker;
 use crate::app::{AppState, Modal};
 use crate::ui;
 use crate::ui::Component;
+use crate::ui::{Anchor, Level};
 use crate::wsl::{MockWSLService, WSLProcessService, WSLService};
 use crossterm::event::{Event, EventStream, KeyCode, KeyEventKind};
 use crossterm::execute;
@@ -14,7 +15,6 @@ use crossterm::terminal::{
 };
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
-use ratatui_notifications::{Anchor, Level};
 use std::io;
 use std::ops::ControlFlow;
 use std::time::Duration;
@@ -82,14 +82,7 @@ pub async fn run_tui() -> io::Result<()> {
                 _ = tick.tick() => {}
             }
 
-            let now = Instant::now();
-
-            state
-                .notifications
-                .tick(now.saturating_duration_since(last_tick));
-
-            last_tick = now;
-
+            state.notifications.tick();
             terminal.draw(|f| ui::render(f, &mut state))?;
         }
     };

@@ -14,7 +14,6 @@ dependencies = [
  "dirs",
  "ratatui",
  "ratatui-explorer",
- "ratatui-notifications",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -1442,19 +1441,6 @@ checksum = "a7f1342a13e83e4bb9d0b793d0ea762be633f9582048c892ae9041ef39c936f4"
 dependencies = [
  "ratatui-core",
  "ratatui-widgets",
-]
-
-[[package]]
-name = "ratatui-notifications"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c4609db8ce75b7b451ac301c6c104753602a4f13e9c66149f143a906ef17a0e"
-dependencies = [
- "chrono",
- "crossterm",
- "log",
- "ratatui",
- "thiserror 2.0.18",
 ]
 
 [[package]]
