@@ -41,6 +41,13 @@ pub async fn run_tui() -> io::Result<()> {
     let wsl = make_backend();
     let _worker = spawn_wsl_worker(cmd_rx, evt_tx, wsl);
 
+    let original_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let _ = disable_raw_mode();
+        let _ = execute!(io::stdout(), LeaveAlternateScreen);
+        original_hook(info);
+    }));
+
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
