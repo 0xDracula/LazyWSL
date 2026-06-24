@@ -295,6 +295,10 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
             };
             vec![]
         }
+        AppAction::OpenCatalogPrompt => {
+            state.modal = Modal::CatalogLoading;
+            vec![WorkerCmd::FetchCatalog]
+        }
         AppAction::Ignore => vec![],
     }
 }

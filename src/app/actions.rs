@@ -23,6 +23,7 @@ pub enum AppAction {
     RollBackPrompt,
     SnapshotPrompt,
     SnapshotManagerPrompt,
+    OpenCatalogPrompt,
 }
 
 pub fn map_key(code: KeyCode) -> AppAction {
@@ -48,6 +49,7 @@ pub fn map_key(code: KeyCode) -> AppAction {
         KeyCode::Char('b') | KeyCode::Char('B') => AppAction::RollBackPrompt,
         KeyCode::Char('z') | KeyCode::Char('Z') => AppAction::SnapshotPrompt,
         KeyCode::Char('S') => AppAction::SnapshotManagerPrompt,
+        KeyCode::Char('o') => AppAction::OpenCatalogPrompt,
         _ => AppAction::Ignore,
     }
 }
