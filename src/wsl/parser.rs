@@ -1,5 +1,5 @@
 use crate::core::{Distribution, DistroState};
-use crate::wsl::WslVersion;
+use crate::wsl::{CatalogEntry, WslVersion};
 use std::fs;
 use std::path::Path;
 
@@ -74,6 +74,27 @@ pub fn get_distro_path() -> std::io::Result<Vec<(String, String)>> {
     Ok(result)
 }
 
+pub fn parse_online_list(raw: &str) -> Vec<CatalogEntry> {
+    raw.lines()
+        .skip_while(|l| !l.trim_start().starts_with("NAME"))
+        .skip(1)
+        .filter_map(|line| {
+            let line = line.trim();
+            if line.is_empty() {
+                return None;
+            }
+            let mut parts = line.splitn(2, char::is_whitespace);
+            let name = parts.next()?.trim().to_string();
+            let friendly = parts.next().unwrap_or("").trim().to_string();
+            if name.is_empty() {
+                None
+            } else {
+                Some(CatalogEntry { name, friendly })
+            }
+        })
+        .collect()
+}
+
 pub fn get_distro_size(install_path: &String) -> Option<u64> {
     let vhdx = Path::new(install_path).join("ext4.vhdx");
     let metadata = fs::metadata(vhdx).ok()?;
@@ -145,5 +166,19 @@ mod tests {
 
         let test_distro = list.iter().find(|d| d.name == "Test Distro").expect("td");
         assert_eq!(test_distro.name, "Test Distro");
+    }
+}
+
+#[cfg(test)]
+mod online_tests {
+    use super::*;
+
+    #[test]
+    fn parses_online_catalog() {
+        let raw = "Installing list:\nNAME  FRIENDLY NAME\nUbuntu  Ubuntu\nkali-linux  Kali Linux Rolling\n";
+        let got = parse_online_list(raw);
+        assert_eq!(got.len(), 2);
+        assert_eq!(got[0].name, "Ubuntu");
+        assert_eq!(got[1].friendly, "Kali Linux Rolling");
     }
 }

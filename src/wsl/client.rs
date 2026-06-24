@@ -1,6 +1,8 @@
 use super::parser::parse_wsl_output;
 use crate::config;
 use crate::core::{Distribution, WSLError};
+use crate::wsl::CatalogEntry;
+use crate::wsl::parser::parse_online_list;
 use std::path::Path;
 use std::process::{Output, Stdio};
 use std::time::Duration;
@@ -98,6 +100,29 @@ impl WslProcess {
 
         let decoded = String::from_utf16_lossy(&utf16);
         Ok(parse_wsl_output(&decoded))
+    }
+
+    pub async fn list_online(&self) -> Result<Vec<CatalogEntry>, WSLError> {
+        let output = self.run_wsl(&["--list", "--online"]).await?;
+
+        if output.stdout.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let utf16: Vec<u16> = output
+            .stdout
+            .chunks_exact(2)
+            .map(|c| u16::from_le_bytes([c[0], c[1]]))
+            .collect();
+
+        let decoded = String::from_utf16_lossy(&utf16);
+        Ok(parse_online_list(&decoded))
+    }
+
+    pub async fn install(&self, name: &str) -> Result<(), WSLError> {
+        self.run_wsl_long(&["--install", "-d", name, "--no-launch"])
+            .await?;
+        Ok(())
     }
 
     pub async fn terminate(&self, name: &str) -> Result<(), WSLError> {

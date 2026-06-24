@@ -1,4 +1,7 @@
-use crate::core::{Distribution, WSLError};
+use crate::{
+    core::{Distribution, WSLError},
+    wsl::CatalogEntry,
+};
 use async_trait::async_trait;
 use std::path::Path;
 use tokio::sync::mpsc::{Receiver, Sender};
@@ -26,6 +29,8 @@ pub trait WSLService: Send + Sync {
         output_tx: Sender<String>,
         input_rx: Receiver<String>,
     ) -> Result<(), WSLError>;
+    async fn list_online(&self) -> Result<Vec<CatalogEntry>, WSLError>;
+    async fn install(&self, name: &str) -> Result<(), WSLError>;
 }
 
 pub struct WSLProcessService {
@@ -93,5 +98,13 @@ impl WSLService for WSLProcessService {
         self.inner
             .run_custom_action(distro, command, output_tx, input_rx)
             .await
+    }
+
+    async fn list_online(&self) -> Result<Vec<CatalogEntry>, WSLError> {
+        self.inner.list_online().await
+    }
+
+    async fn install(&self, name: &str) -> Result<(), WSLError> {
+        self.inner.install(name).await
     }
 }
