@@ -205,6 +205,22 @@ fn process_cmd<'a>(
                     status_line: Some(status_line),
                 }
             }
+            WorkerCmd::FetchCatalog => {
+                let entries = wsl.list_online().await;
+                WorkerEvent::CatalogFetched { entries }
+            }
+            WorkerCmd::Install(name) => {
+                let result = wsl.install(&name).await;
+                let distributions = wsl.list().await;
+                let status_line = match result {
+                    Ok(_) => format!("Installed {name}"),
+                    Err(e) => friendly_status("Install failed", &e),
+                };
+                WorkerEvent::StateRefresh {
+                    distributions,
+                    status_line: Some(status_line),
+                }
+            }
             WorkerCmd::RunCustomAction { .. } | WorkerCmd::Batch(_) => unreachable!(),
         };
 
