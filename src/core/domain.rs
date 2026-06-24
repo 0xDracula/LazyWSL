@@ -12,6 +12,12 @@ pub struct Distribution {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CatalogEntry {
+    pub name: String,
+    pub friendly: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DistroState {
     Running,
     Stopped,
