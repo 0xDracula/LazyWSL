@@ -30,7 +30,9 @@ pub enum WorkerCmd {
     },
     Batch(Vec<WorkerCmd>),
     FetchCatalog,
-    Install(String),
+    Install {
+        name: String,
+    },
 }
 
 #[derive(Debug)]
