@@ -4,7 +4,7 @@ use crate::ui::theme;
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::prelude::Span;
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::Line;
 use ratatui::widgets::{Clear, FrameExt, Padding, Paragraph};
 
@@ -476,6 +476,163 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
             let para = Paragraph::new(msg).block(theme::modal_block_warn("Confirm Prune"));
             frame.render_widget(Clear, pop);
             frame.render_widget(para, pop);
+        }
+
+        Modal::CatalogLoading => {
+            let pop = centered_rect(50, 20, frame.area());
+            frame.render_widget(Clear, pop);
+            frame.render_widget(
+                Paragraph::new(Line::from(Span::styled(
+                    "  Fetching catalog...",
+                    theme::dim(),
+                )))
+                .block(theme::modal_block("Online catalog")),
+                pop,
+            );
+        }
+
+        Modal::CatalogPicker {
+            entries,
+            filtered,
+            selected,
+            query,
+        } => {
+            let popup = centered_rect(80, 70, frame.area());
+            frame.render_widget(Clear, popup);
+            let block = theme::modal_block("Install a distro").padding(Padding::new(1, 1, 1, 1));
+            let inner = block.inner(popup);
+            frame.render_widget(block, popup);
+
+            let rows = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Length(1), Constraint::Min(4)])
+                .split(inner);
+
+            let q = if query.is_empty() {
+                "type to search".to_string()
+            } else {
+                query.clone()
+            };
+            frame.render_widget(
+                Paragraph::new(Line::from(vec![
+                    Span::styled(
+                        format!("{}  ", theme::SEARCH),
+                        Style::default().fg(theme::ACCENT),
+                    ),
+                    Span::styled(q, theme::dim()),
+                ])),
+                rows[0],
+            );
+
+            let cols = Layout::default()
+                .direction(Direction::Horizontal)
+                .spacing(1)
+                .constraints([Constraint::Percentage(55), Constraint::Percentage(45)])
+                .split(rows[1]);
+
+            let mut left = vec![];
+            for (row, &idx) in filtered.iter().enumerate() {
+                let e = &entries[idx];
+                let sel = row == *selected;
+                let style = if sel {
+                    theme::modal_selected()
+                } else {
+                    theme::modal_row()
+                };
+                left.push(Line::from(vec![
+                    Span::styled(if sel { " > " } else { "  " }.to_string(), style),
+                    Span::styled(
+                        theme::distro_icon(&e.name),
+                        Style::default().fg(theme::ACCENT),
+                    ),
+                    Span::raw(" "),
+                    Span::styled(e.friendly.clone(), style),
+                ]));
+            }
+
+            if filtered.is_empty() {
+                left.push(Line::from(Span::styled("  no match", theme::dim())));
+            }
+
+            frame.render_widget(
+                Paragraph::new(left).block(
+                    theme::modal_block("Catalog").border_style(Style::default().fg(theme::BORDER)),
+                ),
+                cols[0],
+            );
+
+            let mut right = vec![];
+            if let Some(&idx) = filtered.get(*selected) {
+                let e = &entries[idx];
+                right.push(Line::from(vec![
+                    Span::styled(
+                        theme::distro_icon(&e.name),
+                        Style::default().fg(theme::ACCENT),
+                    ),
+                    Span::raw(" "),
+                    Span::styled(e.friendly.clone(), theme::value()),
+                ]));
+                right.push(Line::from(""));
+                right.push(Line::from(vec![
+                    Span::styled("id   ", theme::label()),
+                    Span::styled(e.name.clone(), theme::value()),
+                ]));
+                right.push(Line::from(vec![
+                    Span::styled("wsl   ", theme::label()),
+                    Span::styled("2", Style::default().fg(theme::RUNNING)),
+                ]));
+                right.push(Line::from(""));
+                right.push(Line::from(Span::styled(
+                    "installs without launching",
+                    theme::dim(),
+                )));
+                right.push(Line::from(Span::styled(
+                    "run it once to finish setup",
+                    theme::dim(),
+                )));
+            }
+
+            frame.render_widget(
+                Paragraph::new(right).block(
+                    theme::modal_block("Details").border_style(Style::default().fg(theme::BORDER)),
+                ),
+                cols[1],
+            );
+        }
+
+        Modal::ConfirmInstall { entry } => {
+            let pop = centered_rect(70, 30, frame.area());
+            let lines = vec![
+                Line::from(""),
+                Line::from(vec![
+                    Span::styled("Install ", theme::value()),
+                    Span::styled(entry.friendly.clone(), Style::default().fg(theme::ACCENT)),
+                    Span::styled(" ?", theme::value()),
+                ]),
+                Line::from(Span::styled(format!("id: {}", entry.name), theme::dim())),
+                Line::from(""),
+                Line::from(Span::styled(
+                    "Downlods several hundred MB. Installs",
+                    theme::dim(),
+                )),
+                Line::from(Span::styled(
+                    "without launching, run it once to set up",
+                    theme::dim(),
+                )),
+                Line::from(""),
+                Line::from(vec![
+                    Span::styled(" y ", theme::chip(theme::RUNNING)),
+                    Span::styled(" confirm ", theme::dim()),
+                    Span::styled(" n ", theme::chip(theme::ERROR)),
+                    Span::styled(" cancel ", theme::dim()),
+                ]),
+            ];
+
+            frame.render_widget(Clear, pop);
+            frame.render_widget(
+                Paragraph::new(lines).block(theme::modal_block_warn("Confirm Install")),
+                pop,
+            );
         }
     }
 }
