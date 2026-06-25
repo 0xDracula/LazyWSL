@@ -30,7 +30,11 @@ pub trait WSLService: Send + Sync {
         input_rx: Receiver<String>,
     ) -> Result<(), WSLError>;
     async fn list_online(&self) -> Result<Vec<CatalogEntry>, WSLError>;
-    async fn install(&self, name: &str) -> Result<(), WSLError>;
+    async fn install_streaming(
+        &self,
+        name: &str,
+        output_tx: Sender<String>,
+    ) -> Result<(), WSLError>;
 }
 
 pub struct WSLProcessService {
@@ -104,7 +108,11 @@ impl WSLService for WSLProcessService {
         self.inner.list_online().await
     }
 
-    async fn install(&self, name: &str) -> Result<(), WSLError> {
-        self.inner.install(name).await
+    async fn install_streaming(
+        &self,
+        name: &str,
+        output_tx: Sender<String>,
+    ) -> Result<(), WSLError> {
+        self.inner.install_streaming(name, output_tx).await
     }
 }

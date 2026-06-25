@@ -231,8 +231,27 @@ impl WSLService for MockWSLService {
         ])
     }
 
-    async fn install(&self, name: &str) -> Result<(), WSLError> {
-        tokio::time::sleep(Duration::from_millis(300)).await;
+    async fn install_streaming(
+        &self,
+        name: &str,
+        output_tx: Sender<String>,
+    ) -> Result<(), WSLError> {
+        let _ = output_tx
+            .send(format!("$ wsl --install -d {name} --no-launch\n"))
+            .await;
+
+        for pct in [10, 35, 60, 85, 100] {
+            tokio::time::sleep(Duration::from_millis(300)).await;
+            if output_tx
+                .send(format!("DOwnloading: {name} {pct}%\n"))
+                .await
+                .is_err()
+            {
+                break;
+            }
+        }
+
+        let _ = output_tx.send("Installed.\n".to_string()).await;
         self.distros.lock().unwrap().push(Distribution {
             id: None,
             name: name.to_string(),

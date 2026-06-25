@@ -192,6 +192,42 @@ impl WslProcess {
         Ok(())
     }
 
+    pub async fn install_streaming(
+        &self,
+        name: &str,
+        output_tx: Sender<String>,
+    ) -> Result<(), WSLError> {
+        let mut child = Command::new("wsl.exe")
+            .args(["--install", "-d", name, "--no-launch"])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()?;
+
+        let stdout = child.stdout.take();
+        let stderr = child.stderr.take();
+
+        let stdout_task = stdout.map(|s| stream_output(s, output_tx.clone(), None));
+        let stderr_task = stderr.map(|s| stream_output(s, output_tx, Some("stderr: ")));
+
+        let status = child.wait().await?;
+
+        if let Some(task) = stdout_task {
+            let _ = task.await;
+        }
+
+        if let Some(task) = stderr_task {
+            let _ = task.await;
+        }
+
+        if !status.success() {
+            return Err(WSLError::CommandFailed(std::io::Error::other(format!(
+                "install exited with {status}"
+            ))));
+        }
+
+        Ok(())
+    }
+
     pub async fn run_custom_action(
         &self,
         distro: &str,
