@@ -119,11 +119,11 @@ impl WslProcess {
         Ok(parse_online_list(&decoded))
     }
 
-    pub async fn install(&self, name: &str) -> Result<(), WSLError> {
-        self.run_wsl_long(&["--install", "-d", name, "--no-launch"])
-            .await?;
-        Ok(())
-    }
+    // pub async fn install(&self, name: &str) -> Result<(), WSLError> {
+    //     self.run_wsl_long(&["--install", "-d", name, "--no-launch"])
+    //         .await?;
+    //     Ok(())
+    // }
 
     pub async fn terminate(&self, name: &str) -> Result<(), WSLError> {
         let distros = self.get_distros().await?;
