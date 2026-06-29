@@ -1,4 +1,7 @@
-use crate::core::{Distribution, WSLError};
+use crate::{
+    core::{Distribution, WSLError},
+    wsl::CatalogEntry,
+};
 use std::path::PathBuf;
 use tokio::sync::mpsc::Receiver;
 
@@ -26,6 +29,10 @@ pub enum WorkerCmd {
         input_rx: Receiver<String>,
     },
     Batch(Vec<WorkerCmd>),
+    FetchCatalog,
+    Install {
+        name: String,
+    },
 }
 
 #[derive(Debug)]
@@ -39,5 +46,8 @@ pub enum WorkerEvent {
     },
     CustomActionFinished {
         status_line: String,
+    },
+    CatalogFetched {
+        entries: Result<Vec<CatalogEntry>, WSLError>,
     },
 }

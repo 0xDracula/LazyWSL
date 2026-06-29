@@ -44,6 +44,7 @@ pub fn render_help(frame: &mut Frame<'_>) {
         keybind("i", "Import distro", theme::ACCENT),
         keybind("a", "Custom actions", theme::ACCENT),
         keybind("n", "Clone distro", theme::ACCENT),
+        keybind("o", "Install from catalog", theme::ACCENT),
         Line::from(""),
         section("Snapshots", theme::ACCENT_ALT),
         Line::from(""),

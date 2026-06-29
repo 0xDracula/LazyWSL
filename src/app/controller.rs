@@ -131,6 +131,26 @@ fn apply_worker_event(state: &mut AppState, ev: WorkerEvent) {
                 *finished = true;
             }
         }
+        WorkerEvent::CatalogFetched { entries } => match entries {
+            Ok(list) => {
+                let filtered = (0..list.len()).collect();
+                state.modal = Modal::CatalogPicker {
+                    entries: list,
+                    filtered,
+                    selected: 0,
+                    query: String::new(),
+                };
+            }
+            Err(e) => {
+                state.modal = Modal::None;
+                state.notify(
+                    format!("Catalog failed: {e}"),
+                    Level::Error,
+                    Anchor::TopRight,
+                    3,
+                )
+            }
+        },
     }
 }
 

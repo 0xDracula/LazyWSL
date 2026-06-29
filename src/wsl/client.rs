@@ -1,6 +1,8 @@
 use super::parser::parse_wsl_output;
 use crate::config;
 use crate::core::{Distribution, WSLError};
+use crate::wsl::CatalogEntry;
+use crate::wsl::parser::parse_online_list;
 use std::path::Path;
 use std::process::{Output, Stdio};
 use std::time::Duration;
@@ -100,6 +102,29 @@ impl WslProcess {
         Ok(parse_wsl_output(&decoded))
     }
 
+    pub async fn list_online(&self) -> Result<Vec<CatalogEntry>, WSLError> {
+        let output = self.run_wsl(&["--list", "--online"]).await?;
+
+        if output.stdout.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let utf16: Vec<u16> = output
+            .stdout
+            .chunks_exact(2)
+            .map(|c| u16::from_le_bytes([c[0], c[1]]))
+            .collect();
+
+        let decoded = String::from_utf16_lossy(&utf16);
+        Ok(parse_online_list(&decoded))
+    }
+
+    // pub async fn install(&self, name: &str) -> Result<(), WSLError> {
+    //     self.run_wsl_long(&["--install", "-d", name, "--no-launch"])
+    //         .await?;
+    //     Ok(())
+    // }
+
     pub async fn terminate(&self, name: &str) -> Result<(), WSLError> {
         let distros = self.get_distros().await?;
         distro_exists(name, &distros)?;
@@ -164,6 +189,42 @@ impl WslProcess {
     pub async fn export(&self, distro: &str, output: &Path) -> Result<(), WSLError> {
         self.run_wsl_long(&["--export", distro, &output.to_string_lossy()])
             .await?;
+        Ok(())
+    }
+
+    pub async fn install_streaming(
+        &self,
+        name: &str,
+        output_tx: Sender<String>,
+    ) -> Result<(), WSLError> {
+        let mut child = Command::new("wsl.exe")
+            .args(["--install", "-d", name, "--no-launch"])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()?;
+
+        let stdout = child.stdout.take();
+        let stderr = child.stderr.take();
+
+        let stdout_task = stdout.map(|s| stream_output(s, output_tx.clone(), None));
+        let stderr_task = stderr.map(|s| stream_output(s, output_tx, Some("stderr: ")));
+
+        let status = child.wait().await?;
+
+        if let Some(task) = stdout_task {
+            let _ = task.await;
+        }
+
+        if let Some(task) = stderr_task {
+            let _ = task.await;
+        }
+
+        if !status.success() {
+            return Err(WSLError::CommandFailed(std::io::Error::other(format!(
+                "install exited with {status}"
+            ))));
+        }
+
         Ok(())
     }
 

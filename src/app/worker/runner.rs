@@ -93,6 +93,11 @@ fn process_cmd<'a>(
             process_custom_action(wsl, evt_tx, distro, action_name, command, input_rx).await;
             return;
         }
+
+        if let WorkerCmd::Install { name } = cmd {
+            process_install(wsl, evt_tx, name).await;
+            return;
+        }
         let evt = match cmd {
             WorkerCmd::Refresh => {
                 let distributions = wsl.list().await;
@@ -205,7 +210,13 @@ fn process_cmd<'a>(
                     status_line: Some(status_line),
                 }
             }
-            WorkerCmd::RunCustomAction { .. } | WorkerCmd::Batch(_) => unreachable!(),
+            WorkerCmd::FetchCatalog => {
+                let entries = wsl.list_online().await;
+                WorkerEvent::CatalogFetched { entries }
+            }
+            WorkerCmd::RunCustomAction { .. } | WorkerCmd::Batch(_) | WorkerCmd::Install { .. } => {
+                unreachable!()
+            }
         };
 
         let _ = evt_tx.send(evt).await;
@@ -259,6 +270,49 @@ async fn process_custom_action(
     let status_line = match result {
         Ok(()) => format!("Run {action_name} on {distro}"),
         Err(e) => friendly_status(&format!("Custom action {action_name} failed"), &e),
+    };
+
+    let _ = evt_tx
+        .send(WorkerEvent::CustomActionFinished { status_line })
+        .await;
+}
+
+async fn process_install(wsl: &Arc<dyn WSLService>, evt_tx: &Sender<WorkerEvent>, name: String) {
+    let (line_tx, mut line_rx) = tokio::sync::mpsc::channel::<String>(128);
+    let op = wsl.install_streaming(&name, line_tx);
+    tokio::pin!(op);
+
+    let mut output_open = true;
+    let result = loop {
+        tokio::select! {
+            chunk = line_rx.recv(), if output_open => {
+                match chunk {
+                    Some(chunk) => {
+                        if evt_tx.send(WorkerEvent::CustomActionOutput { chunk }).await.is_err() {
+                            return;
+                        }
+                    }
+                    None => output_open = false,
+                }
+            }
+            result = &mut op => break result,
+        }
+    };
+
+    while let Ok(chunk) = line_rx.try_recv() {
+        if evt_tx
+            .send(WorkerEvent::CustomActionOutput { chunk })
+            .await
+            .is_err()
+        {
+            return;
+        }
+    }
+
+    let _ = wsl.list().await;
+    let status_line = match result {
+        Ok(()) => format!("Installed {name}"),
+        Err(e) => friendly_status(&format!("Install {name} failed"), &e),
     };
 
     let _ = evt_tx

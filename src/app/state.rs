@@ -1,7 +1,7 @@
 use crate::app::snapshots::SnapshotInfo;
 use crate::config::CustomActions;
 use crate::ui::Toasts;
-use crate::wsl::Distribution;
+use crate::wsl::{CatalogEntry, Distribution};
 use ratatui_explorer::FileExplorer;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -98,6 +98,16 @@ pub enum Modal {
         distro_idx: usize,
         distro: String,
         keep: usize,
+    },
+    CatalogLoading,
+    CatalogPicker {
+        entries: Vec<CatalogEntry>,
+        filtered: Vec<usize>,
+        selected: usize,
+        query: String,
+    },
+    ConfirmInstall {
+        entry: CatalogEntry,
     },
 }
 

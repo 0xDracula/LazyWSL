@@ -5,6 +5,7 @@ use crate::app::{AppState, Modal, snapshots};
 use crate::config;
 use crate::ui::Component;
 use crate::ui::{Anchor, Level};
+use crate::wsl::CatalogEntry;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui_explorer::FileExplorerBuilder;
 use std::fs;
@@ -16,6 +17,22 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::mpsc;
 
 pub struct ModalComponent;
+
+fn filter_catalog(entries: &[CatalogEntry], query: &str) -> Vec<usize> {
+    if query.is_empty() {
+        return (0..entries.len()).collect();
+    }
+
+    let q = query.to_lowercase();
+    entries
+        .iter()
+        .enumerate()
+        .filter(|(_, e)| {
+            e.name.to_lowercase().contains(&q) || e.friendly.to_lowercase().contains(&q)
+        })
+        .map(|(i, _)| i)
+        .collect()
+}
 
 fn reopen_snapshot_manager(state: &mut AppState, _old_distros: Vec<String>, distro_idx: usize) {
     let distros = snapshots::list_snapshot_distros();
@@ -933,6 +950,113 @@ impl ModalComponent {
                         distro,
                         keep,
                     };
+                    ControlFlow::Continue(())
+                }
+            },
+            Modal::CatalogLoading => {
+                state.modal = Modal::CatalogLoading;
+                ControlFlow::Continue(())
+            }
+            Modal::CatalogPicker {
+                entries,
+                mut filtered,
+                mut selected,
+                mut query,
+            } => match code {
+                KeyCode::Esc => {
+                    state.modal = Modal::None;
+                    ControlFlow::Continue(())
+                }
+                KeyCode::Up => {
+                    selected = selected.saturating_sub(1);
+                    state.modal = Modal::CatalogPicker {
+                        entries,
+                        filtered,
+                        selected,
+                        query,
+                    };
+                    ControlFlow::Continue(())
+                }
+                KeyCode::Down => {
+                    if !filtered.is_empty() {
+                        selected = (selected + 1).min(filtered.len() - 1);
+                    }
+                    state.modal = Modal::CatalogPicker {
+                        entries,
+                        filtered,
+                        selected,
+                        query,
+                    };
+                    ControlFlow::Continue(())
+                }
+                KeyCode::Char(c) => {
+                    query.push(c);
+                    filtered = filter_catalog(&entries, &query);
+                    selected = 0;
+                    state.modal = Modal::CatalogPicker {
+                        entries,
+                        filtered,
+                        selected,
+                        query,
+                    };
+                    ControlFlow::Continue(())
+                }
+                KeyCode::Backspace => {
+                    query.pop();
+                    filtered = filter_catalog(&entries, &query);
+                    selected = 0;
+                    state.modal = Modal::CatalogPicker {
+                        entries,
+                        filtered,
+                        selected,
+                        query,
+                    };
+                    ControlFlow::Continue(())
+                }
+                KeyCode::Enter => {
+                    if let Some(&idx) = filtered.get(selected) {
+                        let entry = entries[idx].clone();
+                        state.modal = Modal::ConfirmInstall { entry };
+                    } else {
+                        state.modal = Modal::CatalogPicker {
+                            entries,
+                            filtered,
+                            selected,
+                            query,
+                        };
+                    }
+                    ControlFlow::Continue(())
+                }
+                _ => {
+                    state.modal = Modal::CatalogPicker {
+                        entries,
+                        filtered,
+                        selected,
+                        query,
+                    };
+                    ControlFlow::Continue(())
+                }
+            },
+            Modal::ConfirmInstall { entry } => match code {
+                KeyCode::Char('y') => {
+                    state.busy = true;
+                    state.notify(
+                        format!("Installing {}...", entry.name),
+                        Level::Info,
+                        Anchor::TopRight,
+                        3,
+                    );
+                    state.modal = Modal::None;
+                    dispatch(state, cmd_tx, WorkerCmd::Install { name: entry.name }).await;
+                    ControlFlow::Continue(())
+                }
+                KeyCode::Char('n') | KeyCode::Esc => {
+                    state.modal = Modal::None;
+                    ControlFlow::Continue(())
+                }
+                KeyCode::Char('q') => ControlFlow::Break(()),
+                _ => {
+                    state.modal = Modal::ConfirmInstall { entry };
                     ControlFlow::Continue(())
                 }
             },

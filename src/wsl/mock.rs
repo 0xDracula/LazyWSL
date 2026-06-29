@@ -1,5 +1,5 @@
 use crate::core::{Distribution, DistroState, WSLError, WslVersion};
-use crate::wsl::WSLService;
+use crate::wsl::{CatalogEntry, WSLService};
 use async_trait::async_trait;
 use std::path::Path;
 use std::sync::Mutex;
@@ -198,6 +198,69 @@ impl WSLService for MockWSLService {
 
         let _ = output_tx.send("[mock] done\n".to_string()).await;
 
+        Ok(())
+    }
+
+    async fn list_online(&self) -> Result<Vec<CatalogEntry>, WSLError> {
+        tokio::time::sleep(Duration::from_millis(150)).await;
+        Ok(vec![
+            CatalogEntry {
+                name: "Ubuntu".into(),
+                friendly: "Ubuntu".into(),
+            },
+            CatalogEntry {
+                name: "Ubuntu-22.04".into(),
+                friendly: "Ubuntu 22.04 LTS".into(),
+            },
+            CatalogEntry {
+                name: "Ubuntu-24.04".into(),
+                friendly: "Ubuntu 24.04 LTS".into(),
+            },
+            CatalogEntry {
+                name: "Debian".into(),
+                friendly: "Debian GNU/Linux".into(),
+            },
+            CatalogEntry {
+                name: "kali-linux".into(),
+                friendly: "Kali Linux Rolling".into(),
+            },
+            CatalogEntry {
+                name: "openSUSE-Tubmleweed".into(),
+                friendly: "openSUSE Tubmleweed".into(),
+            },
+        ])
+    }
+
+    async fn install_streaming(
+        &self,
+        name: &str,
+        output_tx: Sender<String>,
+    ) -> Result<(), WSLError> {
+        let _ = output_tx
+            .send(format!("$ wsl --install -d {name} --no-launch\n"))
+            .await;
+
+        for pct in [10, 35, 60, 85, 100] {
+            tokio::time::sleep(Duration::from_millis(300)).await;
+            if output_tx
+                .send(format!("DOwnloading: {name} {pct}%\n"))
+                .await
+                .is_err()
+            {
+                break;
+            }
+        }
+
+        let _ = output_tx.send("Installed.\n".to_string()).await;
+        self.distros.lock().unwrap().push(Distribution {
+            id: None,
+            name: name.to_string(),
+            state: DistroState::Stopped,
+            version: WslVersion::V2,
+            is_default: false,
+            install_path: None,
+            size_bytes: Some(1_073_741_824),
+        });
         Ok(())
     }
 }
