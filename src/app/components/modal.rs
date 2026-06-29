@@ -1047,7 +1047,7 @@ impl ModalComponent {
                         3,
                     );
                     state.modal = Modal::None;
-                    dispatch(state, cmd_tx, WorkerCmd::Install(entry.name)).await;
+                    dispatch(state, cmd_tx, WorkerCmd::Install { name: entry.name }).await;
                     ControlFlow::Continue(())
                 }
                 KeyCode::Char('n') | KeyCode::Esc => {
