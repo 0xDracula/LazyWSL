@@ -23,6 +23,7 @@ pub fn render(frame: &mut Frame<'_>, _state: &AppState, area: Rect) {
     spans.extend(chip("t", "stop", theme::ERROR));
     spans.extend(chip("z", "snap", theme::ACCENT_ALT));
     spans.extend(chip("S", "mgr", theme::INSTALLING));
+    spans.extend(chip("H", "health", theme::ACCENT_ALT));
     spans.extend(chip("?", "help", theme::STOPPED));
 
     let para = Paragraph::new(Line::from(spans));
