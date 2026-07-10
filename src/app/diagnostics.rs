@@ -116,7 +116,7 @@ impl DiagnosticReport {
             None => {}
         }
 
-        if wsl1_distros.is_empty() {
+        if !wsl1_distros.is_empty() {
             items.push(DiagnosticItem {
                 level: DiagnosticLevel::Warning,
                 label: "WSL version".to_string(),
@@ -139,7 +139,7 @@ impl DiagnosticReport {
                 level: DiagnosticLevel::Warning,
                 label: "Unknown states".to_string(),
                 detail: format!(
-                    "{} distro(s) reported an unkown state: {}",
+                    "{} distro(s) reported an unknown state: {}",
                     unknown_state_distros.len(),
                     format_distro_list(&unknown_state_distros)
                 ),
@@ -149,9 +149,9 @@ impl DiagnosticReport {
         if !unknown_version_distros.is_empty() {
             items.push(DiagnosticItem {
                 level: DiagnosticLevel::Warning,
-                label: "Unkown versions".to_string(),
+                label: "Unknown versions".to_string(),
                 detail: format!(
-                    "{} distro(s) reported an unkown WSL version: {}",
+                    "{} distro(s) reported an unknown WSL version: {}",
                     unknown_version_distros.len(),
                     format_distro_list(&unknown_version_distros)
                 ),
@@ -323,7 +323,7 @@ mod tests {
         )]);
 
         assert!(report.items.iter().any(|item| {
-            item.label == "Uknown versions"
+            item.label == "Unknown versions"
                 && item.level == DiagnosticLevel::Warning
                 && item.detail.contains("FutureWSL")
                 && item.detail.contains("WSL 3")
