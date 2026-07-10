@@ -23,6 +23,20 @@ pub struct DiagnosticReport {
     pub items: Vec<DiagnosticItem>,
 }
 
+pub fn format_distro_list(names: &[String]) -> String {
+    const MAX_VISIBLE: usize = 4;
+
+    if names.len() <= MAX_VISIBLE {
+        names.join(", ")
+    } else {
+        format!(
+            "{}, +{} more",
+            names[..MAX_VISIBLE].join(", "),
+            names.len() - MAX_VISIBLE
+        )
+    }
+}
+
 impl DiagnosticReport {
     pub fn from_state(distributions: &[Distribution]) -> Self {
         let mut items = Vec::new();
@@ -39,20 +53,38 @@ impl DiagnosticReport {
 
         let default = distributions.iter().find(|d| d.is_default);
 
-        let wsl1_count = distributions
+        let wsl1_distros = distributions
             .iter()
             .filter(|d| d.version == WslVersion::V1)
-            .count();
+            .map(|d| d.name.clone())
+            .collect::<Vec<_>>();
 
-        let unkown_state_count = distributions
+        let unknown_state_distros = distributions
             .iter()
             .filter(|d| matches!(d.state, DistroState::Unknown(_)))
-            .count();
+            .map(|d| format!("{} ({})", d.name, d.state))
+            .collect::<Vec<_>>();
 
-        let unkown_version_count = distributions
+        let unknown_version_distros = distributions
             .iter()
             .filter(|d| matches!(d.version, WslVersion::Unknown(_)))
-            .count();
+            .map(|d| format!("{} (WSL {})", d.name, d.version))
+            .collect::<Vec<_>>();
+
+        let missing_install_path_distros = distributions
+            .iter()
+            .filter(|d| d.install_path.is_none())
+            .map(|d| d.name.clone())
+            .collect::<Vec<_>>();
+
+        let oversized_distros = distributions
+            .iter()
+            .filter_map(|d| {
+                let size = d.size_bytes?;
+                (size > 20 * 1024 * 1024 * 1024)
+                    .then(|| format!("{} ({})", d.name, snapshots::format_size(size)))
+            })
+            .collect::<Vec<_>>();
 
         if distro_count == 0 {
             items.push(DiagnosticItem {
@@ -84,13 +116,17 @@ impl DiagnosticReport {
             None => {}
         }
 
-        if wsl1_count > 0 {
+        if wsl1_distros.is_empty() {
             items.push(DiagnosticItem {
                 level: DiagnosticLevel::Warning,
                 label: "WSL version".to_string(),
-                detail: format!("{wsl1_count} distro(s) are still on WSL 1"),
+                detail: format!(
+                    "{} distro(s) are still on WSL 1: {}",
+                    wsl1_distros.len(),
+                    format_distro_list(&wsl1_distros)
+                ),
             });
-        } else if distro_count > 0 {
+        } else if distro_count > 0 && unknown_version_distros.is_empty() {
             items.push(DiagnosticItem {
                 level: DiagnosticLevel::Ok,
                 label: "WSL version".to_string(),
@@ -98,19 +134,51 @@ impl DiagnosticReport {
             });
         }
 
-        if unkown_state_count > 0 {
+        if !unknown_state_distros.is_empty() {
             items.push(DiagnosticItem {
                 level: DiagnosticLevel::Warning,
                 label: "Unknown states".to_string(),
-                detail: format!("{unkown_state_count} distro(s) reported an uknown state"),
+                detail: format!(
+                    "{} distro(s) reported an unkown state: {}",
+                    unknown_state_distros.len(),
+                    format_distro_list(&unknown_state_distros)
+                ),
             });
         }
 
-        if unkown_version_count > 0 {
+        if !unknown_version_distros.is_empty() {
             items.push(DiagnosticItem {
                 level: DiagnosticLevel::Warning,
                 label: "Unkown versions".to_string(),
-                detail: format!("{unkown_version_count} distro(s) reported an unkown WSL version"),
+                detail: format!(
+                    "{} distro(s) reported an unkown WSL version: {}",
+                    unknown_version_distros.len(),
+                    format_distro_list(&unknown_version_distros)
+                ),
+            });
+        }
+
+        if !missing_install_path_distros.is_empty() {
+            items.push(DiagnosticItem {
+                level: DiagnosticLevel::Warning,
+                label: "Install paths".to_string(),
+                detail: format!(
+                    "{} distro(s) are missing install path metadata: {}",
+                    missing_install_path_distros.len(),
+                    format_distro_list(&missing_install_path_distros)
+                ),
+            });
+        }
+
+        if !oversized_distros.is_empty() {
+            items.push(DiagnosticItem {
+                level: DiagnosticLevel::Warning,
+                label: "Distro storage".to_string(),
+                detail: format!(
+                    "{} distro(s) are larger than 20 GiB: {}",
+                    oversized_distros.len(),
+                    format_distro_list(&oversized_distros)
+                ),
             });
         }
 
@@ -223,11 +291,64 @@ mod tests {
             true,
         )]);
 
+        assert!(report.items.iter().any(|item| item.label == "WSL version"
+            && item.level == DiagnosticLevel::Warning
+            && item.detail.contains("Legacy")));
+    }
+
+    #[test]
+    fn reports_unknown_state_with_distro_name() {
+        let report = DiagnosticReport::from_state(&[distro(
+            "BrokenState",
+            DistroState::Unknown("yay".to_string()),
+            WslVersion::V2,
+            true,
+        )]);
+
+        assert!(report.items.iter().any(|item| {
+            item.label == "Unknown states"
+                && item.level == DiagnosticLevel::Warning
+                && item.detail.contains("BrokenState")
+                && item.detail.contains("yay")
+        }))
+    }
+
+    #[test]
+    fn reports_unknown_version_with_distro_name() {
+        let report = DiagnosticReport::from_state(&[distro(
+            "FutureWSL",
+            DistroState::Stopped,
+            WslVersion::Unknown(3),
+            true,
+        )]);
+
+        assert!(report.items.iter().any(|item| {
+            item.label == "Uknown versions"
+                && item.level == DiagnosticLevel::Warning
+                && item.detail.contains("FutureWSL")
+                && item.detail.contains("WSL 3")
+        }));
+
         assert!(
-            report
+            !report
                 .items
                 .iter()
-                .any(|item| item.label == "WSL version" && item.level == DiagnosticLevel::Warning)
+                .any(|item| item.detail == "All detected distros use WSL 2")
         );
+    }
+
+    #[test]
+    fn reports_large_distro_with_name_and_size() {
+        let mut large = distro("HugeUbuntu", DistroState::Stopped, WslVersion::V2, true);
+        large.install_path = Some("/ws/HugeUbuntu".to_string());
+        large.size_bytes = Some(21 * 1024 * 1024 * 1024);
+
+        let report = DiagnosticReport::from_state(&[large]);
+
+        assert!(report.items.iter().any(|item| {
+            item.label == "Distro storage"
+                && item.level == DiagnosticLevel::Warning
+                && item.detail.contains("HugeUbuntu")
+        }));
     }
 }

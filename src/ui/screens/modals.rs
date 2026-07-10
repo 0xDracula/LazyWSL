@@ -7,7 +7,7 @@ use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::prelude::Span;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::Line;
-use ratatui::widgets::{Clear, FrameExt, Padding, Paragraph};
+use ratatui::widgets::{Clear, FrameExt, Padding, Paragraph, Wrap};
 
 pub fn centered_rect(x: u16, y: u16, area: Rect) -> Rect {
     let vertical = Layout::default()
@@ -65,7 +65,7 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
                 ]));
             }
 
-            frame.render_widget(Paragraph::new(lines), inner);
+            frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: true }), inner);
         }
         Modal::ConfirmUnregister { names } => {
             let pop = centered_rect(60, 25, frame.area());

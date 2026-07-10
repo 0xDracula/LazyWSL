@@ -43,6 +43,7 @@ pub fn render_help(frame: &mut Frame<'_>) {
         keybind("e", "Export distro", theme::ACCENT),
         keybind("i", "Import distro", theme::ACCENT),
         keybind("a", "Custom actions", theme::ACCENT),
+        keybind("H", "Check Health", theme::ACCENT),
         keybind("n", "Clone distro", theme::ACCENT),
         keybind("o", "Install from catalog", theme::ACCENT),
         Line::from(""),
