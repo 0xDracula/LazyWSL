@@ -1,6 +1,7 @@
 mod actions;
 mod components;
 mod controller;
+pub mod diagnostics;
 mod reducers;
 pub mod snapshots;
 mod state;

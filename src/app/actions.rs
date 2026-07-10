@@ -4,6 +4,7 @@ use crossterm::event::KeyCode;
 pub enum AppAction {
     Quit,
     Help,
+    HealthCheckPrompt,
     RunSelected,
     OpenShell,
     Terminate,
@@ -29,7 +30,8 @@ pub enum AppAction {
 pub fn map_key(code: KeyCode) -> AppAction {
     match code {
         KeyCode::Char('q') | KeyCode::Char('Q') | KeyCode::Esc => AppAction::Quit,
-        KeyCode::Char('h') | KeyCode::Char('H') => AppAction::Help,
+        KeyCode::Char('?') | KeyCode::Char('h') => AppAction::Help,
+        KeyCode::Char('H') => AppAction::HealthCheckPrompt,
         KeyCode::Char('r') | KeyCode::Char('R') => AppAction::RunSelected,
         KeyCode::Enter => AppAction::OpenShell,
         KeyCode::Char('t') | KeyCode::Char('T') => AppAction::Terminate,
