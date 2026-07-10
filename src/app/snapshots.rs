@@ -137,13 +137,9 @@ pub fn prune_snapshots(distro: &str, keep: usize) -> std::io::Result<(usize, u64
     let mut deleted = 0usize;
     let mut freed = 0u64;
     for info in infos.into_iter().skip(keep) {
-        match delete_snapshot(&info.path) {
-            Ok(sz) => {
-                deleted += 1;
-                freed += sz;
-            }
-            Err(e) => return Err(e),
-        }
+        let sz = delete_snapshot(&info.path)?;
+        deleted += 1;
+        freed += sz;
     }
 
     Ok((deleted, freed))
