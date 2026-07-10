@@ -168,3 +168,66 @@ impl DiagnosticReport {
         Self { summary, items }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn distro(
+        name: &str,
+        state: DistroState,
+        version: WslVersion,
+        is_default: bool,
+    ) -> Distribution {
+        Distribution {
+            id: None,
+            name: name.to_string(),
+            state,
+            version,
+            is_default,
+            install_path: None,
+            size_bytes: None,
+        }
+    }
+
+    #[test]
+    fn reports_missing_distros_as_error() {
+        let report = DiagnosticReport::from_state(&[]);
+
+        assert_eq!(report.items[0].level, DiagnosticLevel::Error);
+        assert!(report.summary.contains("error"));
+    }
+
+    #[test]
+    fn warns_when_default_is_missing() {
+        let report = DiagnosticReport::from_state(&[distro(
+            "Ubuntu",
+            DistroState::Stopped,
+            WslVersion::V2,
+            false,
+        )]);
+
+        assert!(
+            report.items.iter().any(
+                |item| item.label == "Default distro" && item.level == DiagnosticLevel::Warning
+            )
+        );
+    }
+
+    #[test]
+    fn warns_for_wsl1_distros() {
+        let report = DiagnosticReport::from_state(&[distro(
+            "Legacy",
+            DistroState::Stopped,
+            WslVersion::V1,
+            true,
+        )]);
+
+        assert!(
+            report
+                .items
+                .iter()
+                .any(|item| item.label == "WSL version" && item.level == DiagnosticLevel::Warning)
+        );
+    }
+}
