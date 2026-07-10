@@ -1,4 +1,5 @@
 use crate::app::actions::AppAction;
+use crate::app::diagnostics::DiagnosticReport;
 use crate::app::worker::commands::WorkerCmd;
 use crate::app::{AppState, Modal, snapshots};
 use crate::config;
@@ -60,6 +61,12 @@ pub fn reduce(state: &mut AppState, action: AppAction) -> Vec<WorkerCmd> {
         }
         AppAction::Help => {
             state.modal = Modal::Help;
+            vec![]
+        }
+        AppAction::HealthCheckPrompt => {
+            state.modal = Modal::HealthCheck {
+                report: DiagnosticReport::from_state(&state.distributions),
+            };
             vec![]
         }
         AppAction::MoveSelection(delta) => {

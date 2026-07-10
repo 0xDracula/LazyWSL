@@ -39,7 +39,7 @@ impl DiagnosticReport {
 
         let default = distributions.iter().find(|d| d.is_default);
 
-        let ws1_count = distributions
+        let wsl1_count = distributions
             .iter()
             .filter(|d| d.version == WslVersion::V1)
             .count();

@@ -90,6 +90,15 @@ impl ModalComponent {
                 ControlFlow::Continue(())
             }
 
+            Modal::HealthCheck { report } => {
+                if matches!(code, KeyCode::Esc | KeyCode::Char('q')) {
+                    state.modal = Modal::None;
+                } else {
+                    state.modal = Modal::HealthCheck { report };
+                }
+                ControlFlow::Continue(())
+            }
+
             Modal::ConfirmUnregister { names } => match code {
                 KeyCode::Char('y') => {
                     state.clear_multi_select();

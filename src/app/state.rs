@@ -1,3 +1,4 @@
+use crate::app::diagnostics::DiagnosticReport;
 use crate::app::snapshots::SnapshotInfo;
 use crate::config::CustomActions;
 use crate::ui::Toasts;
@@ -30,6 +31,9 @@ struct PinsSer {
 pub enum Modal {
     None,
     Help,
+    HealthCheck {
+        report: DiagnosticReport,
+    },
     ConfirmUnregister {
         names: Vec<String>,
     },

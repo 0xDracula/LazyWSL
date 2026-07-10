@@ -1,3 +1,4 @@
+use crate::app::diagnostics::DiagnosticLevel;
 use crate::app::{AppState, Modal, snapshots};
 use crate::ui::screens::help::render_help;
 use crate::ui::theme;
@@ -32,7 +33,40 @@ pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
     match &mut state.modal {
         Modal::None => {}
         Modal::Help => render_help(frame),
+        Modal::HealthCheck { report } => {
+            let popup = centered_rect(78, 64, frame.area());
+            frame.render_widget(Clear, popup);
 
+            let block = theme::modal_block(" WSL Health Check (Esc/q to close) ")
+                .padding(Padding::new(1, 1, 1, 1));
+
+            let inner = block.inner(popup);
+            frame.render_widget(block, popup);
+
+            let mut lines = vec![
+                Line::from(vec![
+                    Span::styled("Summary: ", theme::label()),
+                    Span::styled(report.summary.clone(), theme::value()),
+                ]),
+                Line::from(""),
+            ];
+
+            for item in &report.items {
+                let (icon, style) = match item.level {
+                    DiagnosticLevel::Ok => ("✓", Style::default().fg(theme::RUNNING)),
+                    DiagnosticLevel::Warning => ("⚠", Style::default().fg(Color::Yellow)),
+                    DiagnosticLevel::Error => ("✗", Style::default().fg(theme::ERROR)),
+                };
+
+                lines.push(Line::from(vec![
+                    Span::styled(format!("{icon}  "), style),
+                    Span::styled(format!("{:<18}", item.label), theme::value()),
+                    Span::styled(item.detail.clone(), theme::dim()),
+                ]));
+            }
+
+            frame.render_widget(Paragraph::new(lines), inner);
+        }
         Modal::ConfirmUnregister { names } => {
             let pop = centered_rect(60, 25, frame.area());
             let msg = if names.len() == 1 {
