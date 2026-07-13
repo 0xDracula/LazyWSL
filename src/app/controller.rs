@@ -1,5 +1,5 @@
-use crate::app::actions::map_key;
 use crate::app::components::modal::ModalComponent;
+use crate::app::keymaps::map_key;
 use crate::app::reducers::reduce;
 use crate::app::worker::commands::{WorkerCmd, WorkerEvent};
 use crate::app::worker::runner::spawn_wsl_worker;
