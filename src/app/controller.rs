@@ -190,7 +190,7 @@ async fn handle_event(
             if state.busy {
                 return ControlFlow::Continue(());
             }
-            let action = map_key(key.code);
+            let action = map_key(key, &state.keymaps);
             let cmds = reduce(state, action);
             for cmd in cmds {
                 dispatch(state, cmd_tx, cmd).await;

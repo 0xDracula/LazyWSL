@@ -1,6 +1,6 @@
 use crate::app::diagnostics::DiagnosticReport;
 use crate::app::snapshots::SnapshotInfo;
-use crate::config::CustomActions;
+use crate::config::{self, CustomActions, KeymapConfig};
 use crate::ui::Toasts;
 use crate::wsl::{CatalogEntry, Distribution};
 use ratatui_explorer::FileExplorer;
@@ -21,6 +21,7 @@ pub struct AppState {
     pub search_active: bool,
     pub pinned: HashSet<String>,
     pub selected_multi: HashSet<String>,
+    pub keymaps: KeymapConfig,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -128,6 +129,7 @@ impl Default for AppState {
             search_query: String::new(),
             pinned: crate::app::state::load_pins(),
             selected_multi: HashSet::new(),
+            keymaps: config::load_or_create().keymaps,
         }
     }
 }
