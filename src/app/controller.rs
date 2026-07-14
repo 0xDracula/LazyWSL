@@ -55,6 +55,10 @@ pub async fn run_tui() -> io::Result<()> {
 
     let mut state = AppState::default();
 
+    for warning in state.keymap_warnings.clone() {
+        state.notify(warning, Level::Warn, Anchor::TopRight, 4);
+    }
+
     terminal.draw(|f| ui::render(f, &mut state))?;
 
     dispatch(&mut state, &cmd_tx, WorkerCmd::Refresh).await;
