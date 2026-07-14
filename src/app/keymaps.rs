@@ -1,14 +1,40 @@
+use std::collections::HashMap;
+
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::{app::actions::AppAction, config::KeymapConfig};
 
 pub fn normalize_key(value: &str) -> String {
     let value = value.trim().replace(' ', "");
+
     if value.chars().count() == 1 {
-        value
-    } else {
-        value.to_lowercase()
+        return value;
     }
+
+    value_from_alias_parts(&value.to_lowercase())
+}
+
+fn value_from_alias_parts(value: &str) -> String {
+    value
+        .split('+')
+        .map(|part| match part {
+            "escape" => "esc",
+            "return" => "enter",
+            "pgup" => "pageup",
+            "pgdn" => "pagedown",
+            "del" => "delete",
+            "ins" => "insert",
+            "control" => "ctrl",
+            other => other,
+        })
+        .collect::<Vec<_>>()
+        .join("+")
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KeymapConflict {
+    pub key: String,
+    pub actions: Vec<&'static str>,
 }
 
 fn plain_key_name(code: KeyCode) -> Option<String> {
@@ -33,6 +59,39 @@ fn plain_key_name(code: KeyCode) -> Option<String> {
         KeyCode::F(n) => Some(format!("f{n}")),
         _ => None,
     }
+}
+
+pub fn validate_keymaps(keymaps: &KeymapConfig) -> Vec<KeymapConflict> {
+    let mut seen: HashMap<String, Vec<&'static str>> = HashMap::new();
+
+    for binding in action_bindings(keymaps) {
+        for key in binding.keys {
+            let normalized = normalize_key(key);
+
+            if normalized.is_empty() {
+                continue;
+            }
+
+            seen.entry(normalized).or_default().push(binding.label);
+        }
+    }
+
+    let mut conflicts = seen
+        .into_iter()
+        .filter_map(|(key, actions)| {
+            let mut unique_actions = actions;
+            unique_actions.sort();
+            unique_actions.dedup();
+
+            (unique_actions.len() > 1).then_some(KeymapConflict {
+                key,
+                actions: unique_actions,
+            })
+        })
+        .collect::<Vec<_>>();
+
+    conflicts.sort_by(|left, right| left.key.cmp(&right.key));
+    conflicts
 }
 
 fn key_candidates(key: KeyEvent) -> Vec<String> {
@@ -292,5 +351,41 @@ mod tests {
             map_key(key(KeyCode::Char('H')), &keymaps),
             AppAction::Ignore
         );
+    }
+
+    #[test]
+    fn key_aliases_are_normalized() {
+        assert_eq!(normalize_key("escape"), "esc");
+        assert_eq!(normalize_key("return"), "enter");
+        assert_eq!(normalize_key("control+h"), "ctrl+h");
+        assert_eq!(normalize_key("ctrl+return"), "ctrl+enter");
+        assert_eq!(normalize_key("pgup"), "pageup");
+        assert_eq!(normalize_key("del"), "delete");
+    }
+
+    #[test]
+    fn detects_conflicting_bindings() {
+        let mut keymaps = KeymapConfig::default();
+        keymaps.help = vec!["H".to_string()];
+        keymaps.health = vec!["H".to_string()];
+
+        let conflicts = validate_keymaps(&keymaps);
+
+        assert_eq!(conflicts.len(), 1);
+        assert_eq!(conflicts[0].key, "H");
+        assert!(conflicts[0].actions.contains(&"Open this help"));
+        assert!(conflicts[0].actions.contains(&"Health check"));
+    }
+
+    #[test]
+    fn aliases_can_conflict_with_canonical_names() {
+        let mut keymaps = KeymapConfig::default();
+        keymaps.open_shell = vec!["return".to_string()];
+        keymaps.quit = vec!["enter".to_string()];
+
+        let conflicts = validate_keymaps(&keymaps);
+
+        assert_eq!(conflicts.len(), 1);
+        assert_eq!(conflicts[0].key, "enter");
     }
 }
