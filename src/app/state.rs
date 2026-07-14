@@ -1,6 +1,7 @@
 use crate::app::diagnostics::DiagnosticReport;
+use crate::app::keymaps::validate_keymaps;
 use crate::app::snapshots::SnapshotInfo;
-use crate::config::CustomActions;
+use crate::config::{self, CustomActions, KeymapConfig};
 use crate::ui::Toasts;
 use crate::wsl::{CatalogEntry, Distribution};
 use ratatui_explorer::FileExplorer;
@@ -21,6 +22,8 @@ pub struct AppState {
     pub search_active: bool,
     pub pinned: HashSet<String>,
     pub selected_multi: HashSet<String>,
+    pub keymaps: KeymapConfig,
+    pub keymap_warnings: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -117,6 +120,18 @@ pub enum Modal {
 
 impl Default for AppState {
     fn default() -> Self {
+        let keymaps = crate::config::load_or_create().keymaps;
+        let keymap_warnings = validate_keymaps(&keymaps)
+            .into_iter()
+            .map(|conflict| {
+                format!(
+                    "Keymap Conflict: `{}` is assigned to {}",
+                    conflict.key,
+                    conflict.actions.join(", ")
+                )
+            })
+            .collect();
+
         Self {
             distributions: Vec::new(),
             selected: 0,
@@ -128,6 +143,8 @@ impl Default for AppState {
             search_query: String::new(),
             pinned: crate::app::state::load_pins(),
             selected_multi: HashSet::new(),
+            keymaps,
+            keymap_warnings,
         }
     }
 }

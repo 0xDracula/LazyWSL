@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::time::{Duration, Instant};
 
 use ratatui::style::Color;
@@ -38,35 +39,41 @@ pub enum Anchor {
 pub struct Toast {
     pub msg: String,
     pub level: Level,
-    pub expires_at: Instant,
+    dismiss: Duration,
+    started_at: Option<Instant>,
 }
 
 #[derive(Debug, Default)]
 pub struct Toasts {
-    current: Option<Toast>,
+    queue: VecDeque<Toast>,
 }
 
 impl Toasts {
     pub fn new() -> Self {
-        Self { current: None }
+        Self {
+            queue: VecDeque::new(),
+        }
     }
 
     pub fn push(&mut self, msg: String, level: Level, dismiss_secs: u64) {
-        self.current = Some(Toast {
+        self.queue.push_back(Toast {
             msg,
             level,
-            expires_at: Instant::now() + Duration::from_secs(dismiss_secs.max(1)),
+            dismiss: Duration::from_secs(dismiss_secs.max(1)),
+            started_at: None,
         });
     }
 
     pub fn tick(&mut self) {
-        if let Some(t) = &self.current
-            && t.expires_at <= Instant::now()
-        {
-            self.current = None;
+        if let Some(front) = self.queue.front_mut() {
+            let started_at = *front.started_at.get_or_insert_with(Instant::now);
+            if started_at + front.dismiss <= Instant::now() {
+                self.queue.pop_front();
+            }
         }
     }
+
     pub fn latest(&self) -> Option<&Toast> {
-        self.current.as_ref()
+        self.queue.front()
     }
 }

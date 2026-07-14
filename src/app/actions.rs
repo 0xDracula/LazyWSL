@@ -1,6 +1,4 @@
-use crossterm::event::KeyCode;
-
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AppAction {
     Quit,
     Help,
@@ -25,33 +23,4 @@ pub enum AppAction {
     SnapshotPrompt,
     SnapshotManagerPrompt,
     OpenCatalogPrompt,
-}
-
-pub fn map_key(code: KeyCode) -> AppAction {
-    match code {
-        KeyCode::Char('q') | KeyCode::Char('Q') | KeyCode::Esc => AppAction::Quit,
-        KeyCode::Char('?') | KeyCode::Char('h') => AppAction::Help,
-        KeyCode::Char('H') => AppAction::HealthCheckPrompt,
-        KeyCode::Char('r') | KeyCode::Char('R') => AppAction::RunSelected,
-        KeyCode::Enter => AppAction::OpenShell,
-        KeyCode::Char('t') | KeyCode::Char('T') => AppAction::Terminate,
-        KeyCode::Char('d') | KeyCode::Char('D') => AppAction::SetDefault,
-        KeyCode::Char('u') | KeyCode::Char('U') => AppAction::UnregisterPrompt,
-        KeyCode::Char('s') => AppAction::ShutdownPrompt,
-        KeyCode::Char('e') | KeyCode::Char('E') => AppAction::ExportPrompt,
-        KeyCode::Char('i') | KeyCode::Char('I') => AppAction::ImportPrompt,
-        KeyCode::Char('a') | KeyCode::Char('A') => AppAction::CustomActionsPrompt,
-        KeyCode::Char('/') => AppAction::SearchPrompt,
-        KeyCode::Char('c') | KeyCode::Char('C') => AppAction::ClearSearch,
-        KeyCode::Char('p') | KeyCode::Char('P') => AppAction::TogglePin,
-        KeyCode::Char(' ') => AppAction::ToggleMultiSelect,
-        KeyCode::Down => AppAction::MoveSelection(1),
-        KeyCode::Up => AppAction::MoveSelection(-1),
-        KeyCode::Char('n') | KeyCode::Char('N') => AppAction::ClonePrompt,
-        KeyCode::Char('b') | KeyCode::Char('B') => AppAction::RollBackPrompt,
-        KeyCode::Char('z') | KeyCode::Char('Z') => AppAction::SnapshotPrompt,
-        KeyCode::Char('S') => AppAction::SnapshotManagerPrompt,
-        KeyCode::Char('o') => AppAction::OpenCatalogPrompt,
-        _ => AppAction::Ignore,
-    }
 }

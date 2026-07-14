@@ -1,3 +1,5 @@
+use crate::app::keymaps::{self, action_bindings, display_keys};
+use crate::config::KeymapConfig;
 use crate::ui::screens::modals::centered_rect;
 use crate::ui::theme;
 use ratatui::Frame;
@@ -21,51 +23,62 @@ fn section(title: &str, color: Color) -> Line<'static> {
     ))
 }
 
-pub fn render_help(frame: &mut Frame<'_>) {
+fn section_color(section: &str) -> Color {
+    match section {
+        "Navigation" => theme::ACCENT,
+        "Distro" => theme::RUNNING,
+        "Snapshots" => theme::ACCENT_ALT,
+        "Danger Zone" => theme::ERROR,
+        _ => theme::ACCENT,
+    }
+}
+
+fn action_color(section: &str, label: &str) -> Color {
+    match (section, label) {
+        ("Danger Zone", _) => theme::ERROR,
+        ("Snapshots", "Snapshot manager") => theme::INSTALLING,
+        ("Snapshots", _) => theme::ACCENT_ALT,
+        ("Distro", "Terminate distro") => theme::ERROR,
+        ("Distro", "Pin distro") => theme::ACCENT_ALT,
+        ("Distro", _) => theme::ACCENT,
+        ("Navigation", "Open this help") => theme::STOPPED,
+        ("Navigation", "Health check") => theme::ACCENT_ALT,
+        ("Navgiation", _) => theme::ACCENT,
+        _ => theme::ACCENT,
+    }
+}
+
+pub fn render_help(frame: &mut Frame<'_>, keymaps: &KeymapConfig) {
     let pop_up = centered_rect(64, 88, frame.area());
 
-    let lines = vec![
-        Line::from(""),
-        section("Navigation", theme::ACCENT),
-        Line::from(""),
-        keybind("↑↓", "Move selection", theme::ACCENT),
-        keybind("Space", "Multi-select", theme::ACCENT),
-        keybind("/", "Search", theme::ACCENT),
-        keybind("?", "Open this help", theme::STOPPED),
-        Line::from(""),
-        section("Distro", theme::RUNNING),
-        Line::from(""),
-        keybind("⏎", "Open shell", theme::RUNNING),
-        keybind("r", "Run distro", theme::RUNNING),
-        keybind("t", "Terminate distro", theme::ERROR),
-        keybind("d", "Set default", theme::ACCENT),
-        keybind("p", "Pin distro", theme::ACCENT_ALT),
-        keybind("e", "Export distro", theme::ACCENT),
-        keybind("i", "Import distro", theme::ACCENT),
-        keybind("a", "Custom actions", theme::ACCENT),
-        keybind("H", "Check Health", theme::ACCENT),
-        keybind("n", "Clone distro", theme::ACCENT),
-        keybind("o", "Install from catalog", theme::ACCENT),
-        Line::from(""),
-        section("Snapshots", theme::ACCENT_ALT),
-        Line::from(""),
-        keybind("z", "Snapshot distro", theme::ACCENT_ALT),
-        keybind("b", "Rollback distro", theme::ACCENT_ALT),
-        keybind("S", "Snapshot manager", theme::INSTALLING),
-        Line::from(""),
-        section("Danger Zone", theme::ERROR),
-        Line::from(""),
-        keybind("u", "Unregister distro", theme::ERROR),
-        keybind("s", "Shutdown all distros", theme::ERROR),
-        keybind("q", "Quit", theme::STOPPED),
-        Line::from(""),
-        Line::from(Span::styled(
-            "Esc to close",
-            Style::default()
-                .fg(theme::TEXT_DIM)
-                .add_modifier(Modifier::ITALIC),
-        )),
-    ];
+    let mut lines = vec![Line::from("")];
+    let mut current_section = "";
+
+    for binding in action_bindings(keymaps) {
+        if binding.section != current_section {
+            if !current_section.is_empty() {
+                lines.push(Line::from(""));
+            }
+
+            current_section = binding.section;
+            lines.push(section(current_section, section_color(current_section)));
+            lines.push(Line::from(""));
+        }
+
+        lines.push(keybind(
+            &display_keys(binding.keys),
+            binding.label,
+            action_color(binding.section, binding.label),
+        ));
+    }
+
+    lines.push(Line::from(""));
+    lines.push(Line::from(Span::styled(
+        "Esc to close",
+        Style::default()
+            .fg(theme::TEXT_DIM)
+            .add_modifier(Modifier::BOLD),
+    )));
 
     let help = Paragraph::new(lines)
         .alignment(Alignment::Left)
