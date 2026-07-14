@@ -251,3 +251,65 @@ pub fn save(cfg: &AppConfig) -> std::io::Result<()> {
     let content = serde_json::to_string_pretty(cfg)?;
     fs::write(config_path(), content)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn config_without_keymaps_uses_defaults() {
+        let json = r#"
+        {
+            "timeouts": {
+                "quickSecs": 5,
+                "defaultSecs": 15,
+                "longSecs": 60
+            },
+            "refreshSecs": 2,
+            "customActions": []
+        }
+        "#;
+
+        let cfg = serde_json::from_str::<AppConfig>(json).unwrap();
+
+        assert_eq!(cfg.keymaps.health, vec!["H"]);
+        assert_eq!(cfg.keymaps.open_shell, vec!["enter"]);
+        assert_eq!(cfg.keymaps.toggle_multi_select, vec!["space"]);
+    }
+
+    #[test]
+    fn partial_keymaps_merge_with_defaults() {
+        let json = r#"
+        {
+            "timeouts": {
+                "quickSecs": 5,
+                "defaultSecs": 16,
+                "longSecs": 60
+            },
+            "refreshSecs": 2,
+            "keymaps": {
+                "health": ["ctrl+h"],
+                "openShell": ["alt+enter"]
+            },
+            "customActions": []
+        }
+        "#;
+
+        let cfg = serde_json::from_str::<AppConfig>(json).unwrap();
+
+        assert_eq!(cfg.keymaps.health, vec!["ctrl+h"]);
+        assert_eq!(cfg.keymaps.open_shell, vec!["alt+enter"]);
+        assert_eq!(cfg.keymaps.quit, vec!["q", "Q", "esc"]);
+        assert_eq!(cfg.keymaps.search, vec!["/"]);
+    }
+
+    #[test]
+    fn keymaps_serialize_as_camel_case() {
+        let cfg = AppConfig::default();
+        let json = serde_json::to_string(&cfg).unwrap();
+
+        assert!(json.contains("openShell"));
+        assert!(json.contains("toggleMultiSelect"));
+        assert!(json.contains("snapshotManager"));
+    }
+}
