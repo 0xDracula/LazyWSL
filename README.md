@@ -27,30 +27,6 @@ Managing WSL through raw `wsl.exe` commands gets tedious fast. LazyWSL gives you
 - Reusable custom actions
 - A themed, responsive terminal UI
 
-## Features
-
-### Distro management
-- Start / stop distros instantly
-- Open a shell directly into a distro
-- Set the default distro
-- Clone a distro
-- Multi-select (`Space`) and search (`/`)
-- Live status, version, and size at a glance
-
-### Snapshots
-- Create a snapshot of any distro
-- Roll back a distro to a snapshot
-- **Snapshot Manager** (`S`): browse, delete, and prune snapshots, with per-distro and total disk usage
-
-### Import / export
-- Import a distro from a `.tar`
-- Export a distro for backup or migration
-
-### Productivity
-- Custom reusable actions
-- Themed notifications
-- Built-in help menu (`?`)
-
 ## Installation
 
 ### Prebuilt binary (recommended)
@@ -67,13 +43,13 @@ cargo run --release
 
 ## Keybindings
 
-**Navigation** — `↑`/`↓` move · `Space` multi-select · `/` search · `?` help
+**Navigation** - `↑`/`↓` move · `Space` multi-select · `/` search · `?` help
 
-**Distro** — `Enter` shell · `r`/`t` run/stop · `d` default · `p` pin · `e`/`i` export/import · `a` actions · `n` clone
+**Distro** - `Enter` shell · `r`/`t` run/stop · `d` default · `p` pin · `e`/`i` export/import · `a` actions · `n` clone
 
-**Snapshots** — `z` snapshot · `b` rollback · `S` manager
+**Snapshots** - `z` snapshot · `b` rollback · `S` manager
 
-**Danger** — `u` unregister · `s` shutdown · `q` quit
+**Danger** - `u` unregister · `s` shutdown · `q` quit
 
 ## Configuration
 
@@ -113,18 +89,6 @@ LAZYWSL_MOCK=1 cargo run
 ```
 
 On non-Windows platforms the mock is used automatically.
-
-## Roadmap
-
-- [x] Import / export
-- [x] Custom actions
-- [x] Search
-- [x] Multi-select
-- [x] Distro cloning
-- [x] Snapshot / rollback system
-- [x] Snapshot manager
-- [ ] Plugin system
-- [ ] Configurable keymaps
 
 ## Contributing
 
