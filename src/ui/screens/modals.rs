@@ -32,7 +32,7 @@ pub fn centered_rect(x: u16, y: u16, area: Rect) -> Rect {
 pub fn render_modals(frame: &mut Frame<'_>, state: &mut AppState) {
     match &mut state.modal {
         Modal::None => {}
-        Modal::Help => render_help(frame),
+        Modal::Help => render_help(frame, &state.keymaps),
         Modal::HealthCheck { report } => {
             let popup = centered_rect(78, 64, frame.area());
             frame.render_widget(Clear, popup);

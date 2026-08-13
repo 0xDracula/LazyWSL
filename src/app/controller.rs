@@ -1,5 +1,5 @@
-use crate::app::actions::map_key;
 use crate::app::components::modal::ModalComponent;
+use crate::app::keymaps::map_key;
 use crate::app::reducers::reduce;
 use crate::app::worker::commands::{WorkerCmd, WorkerEvent};
 use crate::app::worker::runner::spawn_wsl_worker;
@@ -54,6 +54,10 @@ pub async fn run_tui() -> io::Result<()> {
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout))?;
 
     let mut state = AppState::default();
+
+    for warning in state.keymap_warnings.clone() {
+        state.notify(warning, Level::Warn, Anchor::TopRight, 4);
+    }
 
     terminal.draw(|f| ui::render(f, &mut state))?;
 
@@ -190,7 +194,7 @@ async fn handle_event(
             if state.busy {
                 return ControlFlow::Continue(());
             }
-            let action = map_key(key.code);
+            let action = map_key(key, &state.keymaps);
             let cmds = reduce(state, action);
             for cmd in cmds {
                 dispatch(state, cmd_tx, cmd).await;
