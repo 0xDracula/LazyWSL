@@ -1,7 +1,7 @@
 use crate::app::diagnostics::DiagnosticReport;
 use crate::app::keymaps::validate_keymaps;
 use crate::app::snapshots::SnapshotInfo;
-use crate::config::{self, CustomActions, KeymapConfig};
+use crate::config::{CustomActions, KeymapConfig};
 use crate::ui::Toasts;
 use crate::wsl::{CatalogEntry, Distribution};
 use ratatui_explorer::FileExplorer;

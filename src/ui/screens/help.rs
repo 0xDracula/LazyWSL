@@ -1,4 +1,4 @@
-use crate::app::keymaps::{self, action_bindings, display_keys};
+use crate::app::keymaps::{action_bindings, display_keys};
 use crate::config::KeymapConfig;
 use crate::ui::screens::modals::centered_rect;
 use crate::ui::theme;

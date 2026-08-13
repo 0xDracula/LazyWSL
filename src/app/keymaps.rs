@@ -202,6 +202,12 @@ pub fn action_bindings(keymaps: &KeymapConfig) -> Vec<ActionBinding<'_>> {
             section: "Navigation",
         },
         ActionBinding {
+            action: AppAction::ClearSearch,
+            keys: &keymaps.clear_search,
+            label: "Clear search",
+            section: "Navigation",
+        },
+        ActionBinding {
             action: AppAction::HealthCheckPrompt,
             keys: &keymaps.health,
             label: "Health check",
@@ -341,8 +347,10 @@ mod tests {
 
     #[test]
     fn custom_bindings_override_unbound_keys() {
-        let mut keymaps = KeymapConfig::default();
-        keymaps.health = vec!["ctrl+h".to_string()];
+        let keymaps = KeymapConfig {
+            health: vec!["ctrl+h".to_string()],
+            ..Default::default()
+        };
 
         let ctrl_h = KeyEvent::new(KeyCode::Char('h'), KeyModifiers::CONTROL);
 
@@ -365,9 +373,11 @@ mod tests {
 
     #[test]
     fn detects_conflicting_bindings() {
-        let mut keymaps = KeymapConfig::default();
-        keymaps.help = vec!["H".to_string()];
-        keymaps.health = vec!["H".to_string()];
+        let keymaps = KeymapConfig {
+            help: vec!["H".to_string()],
+            health: vec!["H".to_string()],
+            ..Default::default()
+        };
 
         let conflicts = validate_keymaps(&keymaps);
 
@@ -379,9 +389,11 @@ mod tests {
 
     #[test]
     fn aliases_can_conflict_with_canonical_names() {
-        let mut keymaps = KeymapConfig::default();
-        keymaps.open_shell = vec!["return".to_string()];
-        keymaps.quit = vec!["enter".to_string()];
+        let keymaps = KeymapConfig {
+            open_shell: vec!["return".to_string()],
+            quit: vec!["enter".to_string()],
+            ..Default::default()
+        };
 
         let conflicts = validate_keymaps(&keymaps);
 
